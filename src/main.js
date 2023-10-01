@@ -1,6 +1,7 @@
 /** @type {import("../typings/phaser")} */
 import {LoadScene} from "./scenes/LoadScene.js";
 import {MenuScene} from "./scenes/MenuScene.js";
+import {PlayScene} from "./scenes/PlayScene.js";
 let game = new Phaser.Game({
     //width: 1920, 
     //height: 1080, 
@@ -9,7 +10,7 @@ let game = new Phaser.Game({
     AUTO: 1,
     autoCenter: true,
     scene:[
-        LoadScene, MenuScene
+        LoadScene, MenuScene, PlayScene
     ]
 });
 
