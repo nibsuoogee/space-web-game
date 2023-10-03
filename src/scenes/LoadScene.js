@@ -10,7 +10,9 @@ export class LoadScene extends Phaser.Scene{
 
     }
     preload() {
-        this.load.image("star_background", "../../assets/images/starfield.png");
+        this.load.image("star_background", "../../assets/images/star fighter test background.png");
+        //this.load.image("star_background", "../../assets/images/starfield.png");
+        this.load.image("title_logo", "../../assets/images/star fighter logo.png");
         this.load.image("title_text", "../../assets/images/text/star fighter title.png");
         this.load.image("begin_text", "../../assets/images/text/star fighter begin button.png");
         this.load.image("begin_text_hover", "../../assets/images/text/star fighter begin button red.png");

@@ -1,4 +1,5 @@
 /** @type {import("../typings/phaser")} */
+//import Phaser from 'phaser';
 import {LoadScene} from "./scenes/LoadScene.js";
 import {MenuScene} from "./scenes/MenuScene.js";
 import {PlayScene} from "./scenes/PlayScene.js";
@@ -9,6 +10,16 @@ let game = new Phaser.Game({
     height: 540, 
     AUTO: 1,
     autoCenter: true,
+    render: {
+        pixelArt: true
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug: false,
+            gravity: { y: 0 }
+        }
+    },
     scene:[
         LoadScene, MenuScene, PlayScene
     ]
