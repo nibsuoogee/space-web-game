@@ -217,6 +217,7 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
         this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
         this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
