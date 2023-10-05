@@ -227,6 +227,9 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
         this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
         this.load.image('RepairShip', "../../assets/images/RepairShip.png");
+
+        this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
+        this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
     }
     create() {
         this.addShip();
@@ -253,6 +256,8 @@ export class PlayScene extends Phaser.Scene{
         this.zapGun1 = this.sound.add("zap_gun_1")
         this.laserDamage = this.sound.add("laser_damage")
         this.playerDestruction = this.sound.add("player_destruction")
+        this.shopZap = this.sound.add("shop_zap")
+        this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.laserGroupBlue = new LaserGroup(this, this.zapGun1, 'laser');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
@@ -427,7 +432,6 @@ export class PlayScene extends Phaser.Scene{
 
     
     shopSlideIn(){
-
         this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
         this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
@@ -473,22 +477,22 @@ export class PlayScene extends Phaser.Scene{
         
                 button1.on('pointerup', function () {
                     console.log("you pressed a button1");
-
+                    this.shopUpgradeMeaty.play();
         
                 }, this);
                 button2.on('pointerup', function () {
                     console.log("you pressed a button2");
-
+                    this.shopUpgradeMeaty.play();
         
                 }, this);
                 button3.on('pointerup', function () {
                     console.log("you pressed a button3");
-
+                    this.shopUpgradeMeaty.play();
         
                 }, this);
                 button4.on('pointerup', function () {
                     console.log("you pressed a button4");
-
+                    this.shopUpgradeMeaty.play();
                 }, this);
                       
                 button5.on('pointerup', function () {
@@ -515,7 +519,7 @@ export class PlayScene extends Phaser.Scene{
         });
 
         this.slideInTween.play();
-        
+        this.shopZap.play();
         
     }
 
