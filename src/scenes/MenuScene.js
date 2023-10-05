@@ -15,6 +15,7 @@ export class MenuScene extends Phaser.Scene{
         this.load.image("menu_text_hover", "../../assets/images/text/star fighter menu button red.png");
 
         this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-03.mp3");
+        this.load.audio("laser_damage", "../../assets/sfx/star-fighter-laser-damage-hull.mp3");
         
     }
     create() {
@@ -62,8 +63,8 @@ export class MenuScene extends Phaser.Scene{
                 dropLoop.play();
             })
             this.data.set("dropLoop", dropLoop);
-            //this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
-            this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
+            this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
+            //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
         });
 
 
