@@ -222,6 +222,15 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.image('shop', "../../assets/images/shop.png");
+        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
+        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
+        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
+        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
+        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
+        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
+        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
+        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
     }
     create() {
         this.addShip();
@@ -323,7 +332,18 @@ export class PlayScene extends Phaser.Scene{
                 this.timeTillGunReady -= 0.016;
                 //this.gunReadyText.setVisible(0);
             }
+
+            if (!this.timerStarted) {
+                this.timerStarted = true;
+                const delay = 2_000; // 2sec
+                this.time.delayedCall(delay, this.onTimerComplete, [], this);
+            }
         };
+    }
+
+    onTimerComplete() {
+        console.log('Timer complete! Something happens now.');
+        this.shopSlideIn();
     }
 
     playerMove() {
@@ -405,5 +425,131 @@ export class PlayScene extends Phaser.Scene{
     }
     moveShipX(ship, shipMoveSpeed) {
         ship.x += shipMoveSpeed;
+    }
+
+    
+    shopSlideIn(){
+
+        this.load.image('shop', "../../assets/images/shop.png");
+        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
+        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
+        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
+        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
+        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
+        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
+        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
+        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
+
+        const scale = 3;
+        const image = this.add.image(this.game.config.width, this.game.config.height / 2, 'shop');
+        image.setOrigin(0, 0.5);
+        console.log("shop slide in playeds")
+        this.slideInTween = this.tweens.add({
+            targets: image,
+            x: this.game.config.width / 1.3, // Target X position (center of the screen)
+            duration: 1000, // Duration of the tween in milliseconds
+            ease: 'Power2', // Easing function (adjust as needed)
+            paused: true, // Pause the tween initially
+            onComplete: () => {
+                // Code to run when the tween is complete (optional)
+                var shopwindow = this.add.image(0,0, 'shopWindow').setOrigin(0,0);
+                var button1 = this.add.image(13*scale,13*scale, 'EngineUpgrade').setOrigin(0).setInteractive();
+                var button2 = this.add.image(67*scale,13*scale, 'HealthUpgrade').setOrigin(0).setInteractive();
+                var button3 = this.add.image(13*scale,58*scale, 'DamageUpgrade').setOrigin(0).setInteractive();
+                var button4 = this.add.image(67*scale,58*scale, 'FireRateUpgrade').setOrigin(0).setInteractive();
+                var button5 = this.add.image(136*scale,68*scale, 'LeaveShop').setOrigin(0).setInteractive();
+                var button6 = this.add.image(163*scale,68*scale, 'RepairShip').setOrigin(0).setInteractive();
+                var button7 = this.add.image(145*scale,15*scale, 'MissileUpgrade').setOrigin(0).setInteractive();
+                button1.setScale(scale);
+                button2.setScale(scale);
+                button3.setScale(scale);
+                button4.setScale(scale);
+
+                button5.setScale(scale/5);
+                button6.setScale(scale/5);
+                button7.setScale(scale/3);
+                shopwindow.setScale(scale);
+        
+                var shopContainer = this.add.container(32,70, [shopwindow, button1, button2, button3, button4, button5, button6, button7], Phaser.Geom.Rectangle.Contains)
+        
+        
+                button1.on('pointerup', function () {
+                    console.log("you pressed a button1");
+
+        
+                }, this);
+                button2.on('pointerup', function () {
+                    console.log("you pressed a button2");
+
+        
+                }, this);
+                button3.on('pointerup', function () {
+                    console.log("you pressed a button3");
+
+        
+                }, this);
+                button4.on('pointerup', function () {
+                    console.log("you pressed a button4");
+
+                }, this);
+                      
+                button5.on('pointerup', function () {
+                    console.log("you pressed a button1");
+                    this.shopSlideOut(image);
+                    this.slideOutTweenButtons(button1, button2, button3, button4, button5, button6, button7, shopwindow);
+
+        
+                }, this);
+                      
+                button6.on('pointerup', function () {
+                    console.log("you pressed a button1");
+
+        
+                }, this);
+                      
+                button7.on('pointerup', function () {
+                    console.log("you pressed a button1");
+
+        
+                }, this);
+        
+            }
+        });
+
+        this.slideInTween.play();
+        
+        
+    }
+
+    slideOutTweenButtons(button1, button2, button3, button4, button5, button6, button7, shopwindow) {
+        const duration = 2000;
+        const targets = [button1, button2, button3, button4, button5, button6, button7, shopwindow];
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            this.tweens.add({
+                targets: target,
+                x: -5000,
+                duration: duration,
+                ease: 'Power2',
+                onComplete: () => {
+                    target.destroy();
+                }
+            });
+        }
+    }
+
+    shopSlideOut(image) {
+        this.slideOutTween = this.tweens.add({
+            targets: image,
+            x: -1000,
+            duration: 5000,
+            ease: 'Power2',
+            paused: true,
+            onComplete: () => {
+                image.destroy();
+            }
+        });
+    
+        this.slideOutTween.play();
     }
 }
