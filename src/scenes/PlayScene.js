@@ -37,10 +37,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.timeSinceShot = this.gunDelay;
         }
         if (this.health <= 0) {
-            console.log("enemy dead!");
             this.scene.playerDestruction.play();
             this.setActive(false);
             this.setVisible(false);
+            this.scene.addPlayersPoints(10);
             //this.setActive(false);
         }
     }
@@ -134,17 +134,13 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
-        console.log("Ship hit!");
         this.ship.health -= 10;
-        console.log(this.ship.health);
     }
 
     laserHitsEnemy() {
         //this.setVisible(false);
         this.laserHasHit = true;
-        console.log("Enemy hit!");
         this.enemy.health -= 10;
-        console.log(this.enemy.health);
     }
 }
 
@@ -188,6 +184,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
         this.bulletDamage = 50;
+        this.points = 0;
     }
 }
 
@@ -206,7 +203,6 @@ export class PlayScene extends Phaser.Scene{
 
     init(data) {
         console.log(data);
-        console.log("Play scene init!");
         this.backgroundSpeed = 3;
         this.shootDelay = 0.5;
         this.timeTillGunReady = 2;
@@ -214,7 +210,6 @@ export class PlayScene extends Phaser.Scene{
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
     }
     preload() {
-        //this.load.image("ship", "../../assets/images/star fighter ship blue.png");
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
         this.load.image('enemy', "../../assets/images/enemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
@@ -222,15 +217,6 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
-        this.load.image('shop', "../../assets/images/shop.png");
-        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
-        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
-        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
-        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
-        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
-        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
     }
     create() {
         this.addShip();
@@ -261,16 +247,12 @@ export class PlayScene extends Phaser.Scene{
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
 
-        //this.physics.world.setBounds(this.game.renderer.width*(0.1), this.game.renderer.height*(0.05), this.game.renderer.width*0.6, this.game.renderer.height*0.9, true, true, true, true);
-
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
         this.background.preFX.addBarrel(0.5);
 
         this.physics.add.existing(this.ship, 0);
         this.ship.body.collideWorldBounds = true;
-        
-        //game.physics.enable([this.ship, this.boundary], Phaser.Physics.ARCADE);
 
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
@@ -278,15 +260,14 @@ export class PlayScene extends Phaser.Scene{
         //this.gunReadyText = this.add.text(this.game.renderer.width / 50, this.game.renderer.height * 0.90, 'GUN READY', { fontFamily: 'Cambria math' }).setFontSize(18);
         //this.gunReadyTimeText = this.add.text(this.game.renderer.width / 40, this.game.renderer.height * 0.95, '', { fontFamily: 'Cambria math' }).setFontSize(18);
 
-
+        //this.healthPercent = this.add.text(50, -50, '', { fontFamily: 'Cambria math' }).setFontSize(18);
+        //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
+        this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
 
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
 
-        
-        //this.laser = this.add.image(this.game.renderer.width / 10, this.game.renderer.height * 0.6, "laser").setDepth(1);
-
         menuButton.setInteractive();
-
         menuButton.on("pointerover", () => {
             menuButtonHover.setVisible(1);
         });
@@ -306,7 +287,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         this.addEvents();
-        //this.physics.world.enable([this.projectiles, this.enemies]);
     }
 
     update() {
@@ -349,18 +329,20 @@ export class PlayScene extends Phaser.Scene{
     playerMove() {
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             this.ship.anims.play('thrustersOn', true);
-        }
-        if (this.keyW.isDown) {
-            this.moveShipY(this.ship, -this.shipMoveSpeed)
-        } 
-        if (this.keyS.isDown) {
-            this.moveShipY(this.ship, this.shipMoveSpeed)
-        } 
-        if (this.keyA.isDown) {
-            this.moveShipX(this.ship, -this.shipMoveSpeed)
-        } 
-        if (this.keyD.isDown) {
-            this.moveShipX(this.ship, this.shipMoveSpeed)
+            if (this.keyW.isDown) {
+                this.moveShipY(this.ship, -this.shipMoveSpeed)
+            } 
+            if (this.keyS.isDown) {
+                this.moveShipY(this.ship, this.shipMoveSpeed)
+            } 
+            if (this.keyA.isDown) {
+                this.moveShipX(this.ship, -this.shipMoveSpeed)
+            } 
+            if (this.keyD.isDown) {
+                this.moveShipX(this.ship, this.shipMoveSpeed)
+            } 
+        } else {
+            this.ship.anims.play('still', true);
         }
         
     }
@@ -378,6 +360,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     checkPlayerAlive() {
+        this.healthPercent.setText(`${this.ship.health}%`);
         if (this.ship.health <= 0) {
             if (!this.playerDeathHasPlayed) {
                 this.playerDeath();
@@ -386,6 +369,11 @@ export class PlayScene extends Phaser.Scene{
             return(false);
         }
         return(true);
+    }
+
+    addPlayersPoints(points) {
+        this.ship.points += points;
+        this.scoreCounter.setText(`${this.ship.points} pts`);
     }
 
     playerDeath() {
