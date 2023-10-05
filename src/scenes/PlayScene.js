@@ -40,6 +40,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             console.log("enemy dead!");
             this.scene.playerDestruction.play();
             this.setActive(false);
+            this.setVisible(false);
             //this.setActive(false);
         }
     }
@@ -299,7 +300,6 @@ export class PlayScene extends Phaser.Scene{
 
     update() {
         this.moveBackground(this.background, this.backgroundSpeed);
-
         if (this.checkPlayerAlive()) {
             this.playerMove();
             //this.checkCollisions();
@@ -330,16 +330,17 @@ export class PlayScene extends Phaser.Scene{
         }
         if (this.keyW.isDown) {
             this.moveShipY(this.ship, -this.shipMoveSpeed)
-        }
+        } 
         if (this.keyS.isDown) {
             this.moveShipY(this.ship, this.shipMoveSpeed)
-        }
+        } 
         if (this.keyA.isDown) {
             this.moveShipX(this.ship, -this.shipMoveSpeed)
-        }
+        } 
         if (this.keyD.isDown) {
             this.moveShipX(this.ship, this.shipMoveSpeed)
-        } 
+        }
+        
     }
 
     checkCollisions() {
