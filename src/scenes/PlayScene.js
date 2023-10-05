@@ -5,6 +5,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, 'enemy');
         scene.add.existing(this);
         scene.physics.world.enable(this);
+        this.setCollideWorldBounds(true);
 
         this.ship;
         this.scene = scene;
@@ -13,7 +14,6 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         this.fireRate = 250;
         this.lastFired = 0;
-        this.health = 100;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
@@ -22,6 +22,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     spawn(x, y, ship) {
         this.ship = ship;
+        this.health = 10;
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
@@ -34,6 +35,12 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         if (this.timeSinceShot <= 0) {
             this.shootLaser(angleToShip)
             this.timeSinceShot = this.gunDelay;
+        }
+        if (this.health <= 0) {
+            console.log("enemy dead!");
+            this.scene.playerDestruction.play();
+            this.setActive(false);
+            //this.setActive(false);
         }
     }
     shootLaser(angleToShip) {
@@ -48,7 +55,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 class EnemyGroup extends Phaser.Physics.Arcade.Group {
     constructor(scene) {
         super(scene.physics.world, scene);
-
+        
         this.createMultiple({
             classType: Enemy,
             frameQuantity: 5,
@@ -175,7 +182,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.fireRate = 250;
         this.lastFired = 0;
-        this.health = 100;
+        this.health = 10;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
@@ -193,6 +200,7 @@ export class PlayScene extends Phaser.Scene{
         this.laserGroup;
         this.enemyGroup;
         this.laserGroupRed;
+        this.playerDeathHasPlayed = false;
     }
 
     init(data) {
@@ -202,6 +210,7 @@ export class PlayScene extends Phaser.Scene{
         this.shootDelay = 0.5;
         this.timeTillGunReady = 2;
         this.shipMoveSpeed = 3;
+        this.dropLoop = data.dropLoop;
     }
     preload() {
         //this.load.image("ship", "../../assets/images/star fighter ship blue.png");
@@ -235,13 +244,14 @@ export class PlayScene extends Phaser.Scene{
             frameRate: 20,
         });
 
-        this.zapGun1 = this.sound.add("zap_gun_1", {volume: 1})
-        this.laserDamage = this.sound.add("laser_damage", {volume: 1})
+        this.zapGun1 = this.sound.add("zap_gun_1")
+        this.laserDamage = this.sound.add("laser_damage")
+        this.playerDestruction = this.sound.add("player_destruction")
         this.laserGroupBlue = new LaserGroup(this, this.zapGun1, 'laser');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
 
-        this.physics.world.setBounds(this.game.renderer.width*(0.1), this.game.renderer.height*(0.05), this.game.renderer.width*0.6, this.game.renderer.height*0.9, true, true, true, true);
+        //this.physics.world.setBounds(this.game.renderer.width*(0.1), this.game.renderer.height*(0.05), this.game.renderer.width*0.6, this.game.renderer.height*0.9, true, true, true, true);
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -288,28 +298,30 @@ export class PlayScene extends Phaser.Scene{
     }
 
     update() {
-        this.playerMove();
-        //this.checkCollisions();
         this.moveBackground(this.background, this.backgroundSpeed);
 
-        //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
+        if (this.checkPlayerAlive()) {
+            this.playerMove();
+            //this.checkCollisions();
 
-        if (this.timeTillGunReady <= 0) {
-            //this.gunReadyText.setVisible(1);
-            if (this.keySpace.isDown) {
-                this.zapGun1.play();
-                this.timeTillGunReady = this.shootDelay;
-                this.shootLaser();
-            }
-            if (this.keyShift.isDown) {
-                this.spawnEnemy();
-                this.timeTillGunReady = this.shootDelay;
-            }
-        } else {
-            this.timeTillGunReady -= 0.016;
-            //this.gunReadyText.setVisible(0);
-        }
+            //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
 
+            if (this.timeTillGunReady <= 0) {
+                //this.gunReadyText.setVisible(1);
+                if (this.keySpace.isDown) {
+                    this.zapGun1.play();
+                    this.timeTillGunReady = this.shootDelay;
+                    this.shootLaser();
+                }
+                if (this.keyShift.isDown) {
+                    this.spawnEnemy();
+                    this.timeTillGunReady = this.shootDelay;
+                }
+            } else {
+                this.timeTillGunReady -= 0.016;
+                //this.gunReadyText.setVisible(0);
+            }
+        };
     }
 
     playerMove() {
@@ -340,6 +352,22 @@ export class PlayScene extends Phaser.Scene{
 
     moveBackground(background, speed) {
         background.tilePositionX += speed;
+    }
+
+    checkPlayerAlive() {
+        if (this.ship.health <= 0) {
+            if (!this.playerDeathHasPlayed) {
+                this.playerDeath();
+                this.playerDeathHasPlayed = true;
+            }
+            return(false);
+        }
+        return(true);
+    }
+
+    playerDeath() {
+        this.playerDestruction.play();
+        console.log("YOU DIED!");
     }
 
     addEvents() {
