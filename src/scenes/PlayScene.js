@@ -20,9 +20,8 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.bulletDamage = 10;
     }
 
-    spawn(x, y, ship, laserGroupRed) {
+    spawn(x, y, ship) {
         this.ship = ship;
-        //this.laserGroup = laserGroupRed;
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
@@ -38,7 +37,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         }
     }
     shootLaser(angleToShip) {
-        this.scene.laserGroupRed.fireLaser(this.x, this.y, angleToShip);
+        const laserSpawnDistance = 100;
+        const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
+        const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
     }
     
 }
@@ -78,12 +80,13 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.postFX.addBloom(0xffffff, 1.5, 1.5, 2, 2);
         this.laserSpeed = 900;
         this.laserHasHit = false;
+        this.enemy;
         
     }
 
     fire(x, y, alpha) {
-        console.log("Ship health:");
-        console.log(this.ship.health);
+        //console.log("Ship health:");
+        //console.log(this.ship.health);
         this.laserHasHit = false;
         this.body.reset(x,y);
 
@@ -99,6 +102,15 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         super.preUpdate(time, delta);
         if (!this.laserHasHit) {
             this.scene.physics.world.collide(this, this.ship, this.laserHitsShip, null, this);
+            
+            this.scene.enemyGroup.children.iterate((enemy) => {
+                this.enemy = enemy;
+                if (enemy.active) {
+                    this.scene.physics.world.collide(this, enemy, this.laserHitsEnemy, null, this);
+                }
+            })
+            
+            
         }
 
         if (this.x >= 1000) { //|| this.x >= 1000 || this.x >= 1000 || this.x >= 1000) {
@@ -112,6 +124,14 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.scene.laserDamage.play();
         console.log("Ship hit!");
         this.ship.health -= 10;
+        console.log(this.ship.health);
+    }
+
+    laserHitsEnemy() {
+        this.laserHasHit = true;
+        console.log("Enemy hit!");
+        this.enemy.health -= 10;
+        console.log(this.enemy.health);
     }
 }
 
