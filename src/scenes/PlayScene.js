@@ -211,7 +211,7 @@ export class PlayScene extends Phaser.Scene{
         this.shootDelay = 0.5;
         this.timeTillGunReady = 2;
         this.shipMoveSpeed = 3;
-        this.dropLoop = data.dropLoop;
+        this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
     }
     preload() {
         //this.load.image("ship", "../../assets/images/star fighter ship blue.png");
@@ -268,6 +268,8 @@ export class PlayScene extends Phaser.Scene{
 
         //this.gunReadyText = this.add.text(this.game.renderer.width / 50, this.game.renderer.height * 0.90, 'GUN READY', { fontFamily: 'Cambria math' }).setFontSize(18);
         //this.gunReadyTimeText = this.add.text(this.game.renderer.width / 40, this.game.renderer.height * 0.95, '', { fontFamily: 'Cambria math' }).setFontSize(18);
+
+
 
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
 
@@ -369,6 +371,7 @@ export class PlayScene extends Phaser.Scene{
     playerDeath() {
         this.playerDestruction.play();
         console.log("YOU DIED!");
+        this.dropLoop.stop();
     }
 
     addEvents() {
