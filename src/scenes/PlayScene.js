@@ -217,6 +217,15 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.image('shop', "../../assets/images/shop.png");
+        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
+        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
+        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
+        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
+        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
+        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
+        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
+        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
     }
     create() {
         this.addShip();

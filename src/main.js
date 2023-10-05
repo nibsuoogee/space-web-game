@@ -5,10 +5,8 @@ import {MenuScene} from "./scenes/MenuScene.js";
 import {PlayScene} from "./scenes/PlayScene.js";
 import {GameScene} from "./scenes/GameScene.js";
 let game = new Phaser.Game({
-    //width: 1920, 
-    //height: 1080, 
-    width: window.innerWidth, 
-    height: window.innerHeight, 
+    width: 1920/2, 
+    height: 1080/2, 
     AUTO: 1,
     autoCenter: true,
     render: {
