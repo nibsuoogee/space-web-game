@@ -75,6 +75,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, laserColour);
         scene.add.existing(this);
         scene.physics.world.enable(this);
+        //this.body.setMass(0);
         this.scene = scene;
         this.ship = scene.ship;
         this.postFX.addBloom(0xffffff, 1.5, 1.5, 2, 2);
@@ -89,6 +90,8 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //console.log(this.ship.health);
         this.laserHasHit = false;
         this.body.reset(x,y);
+        //this.body.setMass(0);
+        //this.setMass(0);
 
         this.setActive(true);
         this.setVisible(true);
@@ -113,13 +116,14 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
             
         }
 
-        if (this.x >= 1000) { //|| this.x >= 1000 || this.x >= 1000 || this.x >= 1000) {
+        if (this.x >= 1000 || this.x <= -1000 || this.y >= 1000 || this.y <= -1000) {
             this.setActive(false);
             this.setVisible(false);
         }
     }
 
     laserHitsShip() {
+        //this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
         console.log("Ship hit!");
@@ -128,6 +132,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     }
 
     laserHitsEnemy() {
+        //this.setVisible(false);
         this.laserHasHit = true;
         console.log("Enemy hit!");
         this.enemy.health -= 10;
