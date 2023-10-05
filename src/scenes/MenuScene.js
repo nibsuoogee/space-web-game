@@ -14,7 +14,8 @@ export class MenuScene extends Phaser.Scene{
         this.load.image("menu_text", "../../assets/images/text/star fighter menu button.png");
         this.load.image("menu_text_hover", "../../assets/images/text/star fighter menu button red.png");
 
-        this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-02.mp3");
+        this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-03.mp3");
+        
     }
     create() {
         this.sound.volume = 0.05;
