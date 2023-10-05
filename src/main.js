@@ -7,8 +7,10 @@ import {GameScene} from "./scenes/GameScene.js";
 let game = new Phaser.Game({
     //width: 1920, 
     //height: 1080, 
-    width: window.innerWidth, 
-    height: window.innerHeight, 
+    //width: window.innerWidth, 
+    //height: window.innerHeight, 
+    width: 960, 
+    height: 540, 
     AUTO: 1,
     autoCenter: true,
     render: {

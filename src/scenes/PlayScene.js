@@ -41,6 +41,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.scene.playerDestruction.play();
             this.setActive(false);
             this.setVisible(false);
+            this.scene.addPlayersPoints(10);
             //this.setActive(false);
         }
     }
@@ -188,6 +189,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
         this.bulletDamage = 50;
+        this.points = 0;
     }
 }
 
@@ -222,6 +224,7 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
     }
     create() {
         this.addShip();
@@ -268,6 +271,13 @@ export class PlayScene extends Phaser.Scene{
 
         //this.gunReadyText = this.add.text(this.game.renderer.width / 50, this.game.renderer.height * 0.90, 'GUN READY', { fontFamily: 'Cambria math' }).setFontSize(18);
         //this.gunReadyTimeText = this.add.text(this.game.renderer.width / 40, this.game.renderer.height * 0.95, '', { fontFamily: 'Cambria math' }).setFontSize(18);
+
+        //this.healthPercent = this.add.text(50, -50, '', { fontFamily: 'Cambria math' }).setFontSize(18);
+        //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
+        this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+
+
 
 
 
@@ -341,6 +351,8 @@ export class PlayScene extends Phaser.Scene{
         } 
         if (this.keyD.isDown) {
             this.moveShipX(this.ship, this.shipMoveSpeed)
+        } else {
+            this.ship.anims.play('still', true);
         }
         
     }
@@ -358,6 +370,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     checkPlayerAlive() {
+        this.healthPercent.setText(`${this.ship.health}%`);
         if (this.ship.health <= 0) {
             if (!this.playerDeathHasPlayed) {
                 this.playerDeath();
@@ -366,6 +379,11 @@ export class PlayScene extends Phaser.Scene{
             return(false);
         }
         return(true);
+    }
+
+    addPlayersPoints(points) {
+        this.ship.points += points;
+        this.scoreCounter.setText(`${this.ship.points} pts`);
     }
 
     playerDeath() {
