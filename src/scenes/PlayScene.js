@@ -134,7 +134,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
-        this.ship.health -= 10;
+        this.ship.health -= this.enemy.bulletDamage;
     }
 
     laserHitsEnemy() {
