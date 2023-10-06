@@ -136,7 +136,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
-        this.ship.health -= this.enemy.bulletDamage;
+        this.ship.health -= 10;
     }
 
     laserHitsEnemy() {
@@ -365,7 +365,7 @@ export class PlayScene extends Phaser.Scene{
 
             if (!this.timerStarted) {
                 this.timerStarted = true;
-                const delay = 200_000; // 20sec
+                const delay = 2_000; // 20sec
                 this.time.delayedCall(delay, this.onTimerComplete, [], this);
             }
         };
