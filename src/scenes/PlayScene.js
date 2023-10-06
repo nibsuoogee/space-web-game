@@ -185,6 +185,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.flySpeed = 500;
         this.bulletDamage = 50;
         this.points = 0;
+        this.energy = 100;
+        this.energyGeneration = 10;
+        this.energyUsage = 1;
+
     }
 }
 
@@ -330,15 +334,46 @@ export class PlayScene extends Phaser.Scene{
 
             if (!this.timerStarted) {
                 this.timerStarted = true;
-                const delay = 2_000; // 2sec
+                const delay = 2_000; // 20sec
                 this.time.delayedCall(delay, this.onTimerComplete, [], this);
             }
         };
     }
 
     onTimerComplete() {
+        //all the enemies must be killed first
+
+
+
+        // all the scrap floats fairly quickly to the player
+
+
+
+        const attributePool = [1, 2, 3, 4];
+        const weaponPool = [1];
+        const selectedWeapons = [];
+        const selectedAttributes = [];
+
+
+        for (let i = 0; i < 4; i++) {
+            // Generate a random index within the current pool size
+            const randomAttribute = Math.floor(Math.random() * attributePool.length);
+            const selectedAttribute = attributePool.splice(randomAttribute, 1)[0];
+            selectedAttributes.push(selectedAttribute);
+        
+        }
+
+        for (let i = 0; i < 1; i++) {
+            // Generate a random index within the current pool size
+            const randomWeapon = Math.floor(Math.random() * weaponPool.length);
+            const selectedWeapon = attributePool.splice(randomWeapon, 1)[0];
+            selectedWeapons.push(selectedWeapon);
+            
+        }
+
         console.log('Timer complete! Something happens now.');
-        this.shopSlideIn();
+        this.shopSlideIn(selectedAttributes, selectedWeapons);
+
     }
 
     playerMove() {
@@ -431,7 +466,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     
-    shopSlideIn(){
+    shopSlideIn(Attributes, Weapons){
         this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
         this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
@@ -441,19 +476,20 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
         this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
         this.load.image('RepairShip', "../../assets/images/RepairShip.png");
-
-        const scale = 3;
         const image = this.add.image(this.game.config.width, this.game.config.height / 2, 'shop');
+        const scale = 3;
+
+        //add shop to out of bounds
         image.setOrigin(0, 0.5);
-        console.log("shop slide in playeds")
+
+        //play ship slide in animation and open shop window
         this.slideInTween = this.tweens.add({
             targets: image,
-            x: this.game.config.width / 1.3, // Target X position (center of the screen)
+            x: this.game.config.width / 1.3, // shop X position
             duration: 1000, // Duration of the tween in milliseconds
-            ease: 'Power2', // Easing function (adjust as needed)
+            ease: 'Power2', // Easing function
             paused: true, // Pause the tween initially
             onComplete: () => {
-                // Code to run when the tween is complete (optional)
                 var shopwindow = this.add.image(0,0, 'shopWindow').setOrigin(0,0);
                 var button1 = this.add.image(13*scale,13*scale, 'EngineUpgrade').setOrigin(0).setInteractive();
                 var button2 = this.add.image(67*scale,13*scale, 'HealthUpgrade').setOrigin(0).setInteractive();
