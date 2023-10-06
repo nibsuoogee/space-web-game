@@ -12,7 +12,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.timeSinceShot = 4;
         this.gunDelay = 4;
 
-        this.fireRate = 250;
+        this.fireRate = 0.016;
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
@@ -29,7 +29,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     
     preUpdate() {
-        this.timeSinceShot -= 0.016;
+        this.timeSinceShot -= this.fireRate;
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
         this.angle = Phaser.Math.RadToDeg(angleToShip) +90;
         if (this.timeSinceShot <= 0) {
@@ -179,7 +179,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.fireRate = 250;
         this.lastFired = 0;
-        this.health = 10;
+        this.health = 1000;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
@@ -354,24 +354,23 @@ export class PlayScene extends Phaser.Scene{
 
 
 
-        const attributePool = [0, 1, 2, 3];
-        const weaponPool = [0];
+        const minAttributeValue = 0;  // Minimum attribute value
+        const maxAttributeValue = 3;  // Maximum attribute value (inclusive)
+        
+        const minWeaponValue = 0;     // Minimum weapon value
+        const maxWeaponValue = 1;     // Maximum weapon value (inclusive)
+        
         const selectedWeapons = [];
         const selectedAttributes = [];
-
-
-        for (let i = 0; i < 4; i++) {
-            // Generate a random index within the current pool size
-            const randomAttribute = Math.floor(Math.random() * attributePool.length);
-            const selectedAttribute = attributePool.splice(randomAttribute, 1)[0];
-            selectedAttributes.push(selectedAttribute);
         
+        for (let i = 0; i < 4; i++) {
+            const randomAttribute = Math.floor(Math.random() * (maxAttributeValue - minAttributeValue + 1)) + minAttributeValue;
+            selectedAttributes.push(randomAttribute);
         }
-
-        const randomWeapon = Math.floor(Math.random() * weaponPool.length);
-        const selectedWeapon = weaponPool.splice(randomWeapon, 1)[0];
-        selectedWeapons.push(selectedWeapon);
-
+        
+        const randomWeapon = Math.floor(Math.random() * (maxWeaponValue - minWeaponValue + 1)) + minWeaponValue;
+        selectedWeapons.push(randomWeapon);
+        
         this.shopSlideIn(selectedAttributes, selectedWeapons);
 
     }
@@ -537,6 +536,7 @@ export class PlayScene extends Phaser.Scene{
                 Upgrade_1_Button.on('pointerup', function () {
                     console.log(attributeAssets[Attributes[0]]);
                     this.shopUpgradeMeaty.play();
+                    this.ship.health += 10;
         
                 }, this);
                 Upgrade_2_Button.on('pointerup', function () {
