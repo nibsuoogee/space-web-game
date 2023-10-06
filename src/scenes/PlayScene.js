@@ -339,11 +339,39 @@ export class PlayScene extends Phaser.Scene{
 
             if (!this.timerStarted) {
                 this.timerStarted = true;
-                const delay = 2_000; // 20sec
+                const delay = 2000; // 2 seconds
+              
+                // Define game boundaries (adjust these values to fit your game)
+                const minX = 0;
+                const maxX = this.game.config.width;
+                const minY = 0;
+                const maxY = this.game.config.height;
+
+                this.time.addEvent({
+                    delay: delay,
+                    callback: () => {
+                      this.getRandomPositionWithinBounds(minX, maxX, minY, maxY);
+                    },
+                    callbackScope: this,
+                    loop: true,
+                  });
+
+            }
+
+            if (!this.timerStarted) {
+                this.timerStarted = true;
+                const delay = 200_000; // 20sec
                 this.time.delayedCall(delay, this.onTimerComplete, [], this);
             }
         };
     }
+
+    getRandomPositionWithinBounds(minX, maxX, minY, maxY) {
+        const x = Math.random() * (maxX - minX) + minX;
+        const y = Math.random() * (maxY - minY) + minY;
+        this.spawnEnemyXY(x, y);
+      }
+    
 
     onTimerComplete() {
         //all the enemies must be killed first
@@ -448,6 +476,10 @@ export class PlayScene extends Phaser.Scene{
 
     spawnEnemy() {
         this.enemyGroup.spawnEnemy(this.ship.x, this.ship.y);
+    }
+
+    spawnEnemyXY(x, y) {
+        this.enemyGroup.spawnEnemy(x, y);
     }
 
     addShip() {
