@@ -22,7 +22,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     spawn(x, y, ship) {
         this.ship = ship;
-        this.health = 10;
+        this.health = 100;
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
@@ -102,6 +102,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.body.reset(x,y);
         //this.body.setMass(0);
         //this.setMass(0);
+        this.body.setBounce(0);
 
         this.setActive(true);
         this.setVisible(true);
@@ -346,6 +347,7 @@ export class PlayScene extends Phaser.Scene{
             if (!this.timerStarted) {
                 this.timerStarted = true;
                 const delay = 2000; // 2 seconds
+                const ShopDelay = 2000;
               
                 // Define game boundaries (adjust these values to fit your game)
                 const minX = 0;
@@ -362,12 +364,15 @@ export class PlayScene extends Phaser.Scene{
                     loop: true,
                   });
 
-            }
+                  this.time.addEvent({
+                    delay: ShopDelay,
+                    callback: () => {
+                        this.onTimerComplete();
+                    },
+                    callbackScope: this,
+                    loop: false,
+                  });
 
-            if (!this.timerStarted) {
-                this.timerStarted = true;
-                const delay = 2_000; // 20sec
-                this.time.delayedCall(delay, this.onTimerComplete, [], this);
             }
         };
     }
