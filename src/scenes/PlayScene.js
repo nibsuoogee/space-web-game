@@ -234,7 +234,8 @@ export class PlayScene extends Phaser.Scene{
 
         this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
         this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
-        this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-laser-repair-hammering.mp3");
+        this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
+        this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
         
     }
     create() {
@@ -265,6 +266,7 @@ export class PlayScene extends Phaser.Scene{
         this.shopZap = this.sound.add("shop_zap")
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.repairHammer = this.sound.add("repair_hammering");
+        this.repairDrill = this.sound.add("repair_drill");
         this.laserGroupBlue = new LaserGroup(this, this.zapGun1, 'laser');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
@@ -568,6 +570,7 @@ export class PlayScene extends Phaser.Scene{
                 RepairShipButton.on('pointerup', function () {
                     console.log("Reapairing");
                     this.repairHammer.play();
+                    this.repairDrill.play();
 
         
                 }, this);
