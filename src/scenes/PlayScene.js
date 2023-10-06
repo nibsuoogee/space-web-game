@@ -33,8 +33,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
         this.angle = Phaser.Math.RadToDeg(angleToShip) +90;
         if (this.timeSinceShot <= 0) {
-            this.shootLaser(angleToShip)
-            this.timeSinceShot = this.gunDelay;
+            if (this.scene.checkPlayerAlive()) {
+                this.shootLaser(angleToShip)
+                this.timeSinceShot = this.gunDelay;
+            }
         }
         if (this.health <= 0) {
             this.scene.playerDestruction.play();
@@ -162,7 +164,7 @@ class LaserGroup extends Phaser.Physics.Arcade.Group {
         const laser = this.getFirstDead(false);
         if (laser) {
             laser.fire(x, y, alpha)
-            this.zapGunSound.play();
+            //this.zapGunSound.play();
         }
     }
 }
@@ -236,6 +238,7 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
         this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
         this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
+        this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
         
     }
     create() {
@@ -267,7 +270,8 @@ export class PlayScene extends Phaser.Scene{
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.repairHammer = this.sound.add("repair_hammering");
         this.repairDrill = this.sound.add("repair_drill");
-        this.laserGroupBlue = new LaserGroup(this, this.zapGun1, 'laser');
+        this.rocketWeapon = this.sound.add("rocket_weapon");
+        this.laserGroupBlue = new LaserGroup(this, this.rocketWeapon, 'laser');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
 
@@ -325,6 +329,7 @@ export class PlayScene extends Phaser.Scene{
                 //this.gunReadyText.setVisible(1);
                 if (this.keySpace.isDown) {
                     this.zapGun1.play();
+                    //this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
                     this.shootLaser();
                 }
