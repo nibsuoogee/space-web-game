@@ -126,9 +126,10 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
             
         }
 
-        if (this.x >= 1000 || this.x <= -1000 || this.y >= 1000 || this.y <= -1000) {
+        if (this.x <= 0 || this.x >= this.scene.game.renderer.width || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
             this.setActive(false);
             this.setVisible(false);
+            console.log("laser deleted!")
         }
     }
 
