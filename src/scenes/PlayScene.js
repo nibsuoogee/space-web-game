@@ -4,8 +4,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'enemy');
         scene.add.existing(this);
-        scene.physics.world.enable(this);
-        this.setCollideWorldBounds(true);
+        scene.physics.add.existing(this, 0);
 
         this.ship;
         this.scene = scene;
@@ -18,9 +17,15 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.bulletSpeed = 1000;
         this.flySpeed = 500;
         this.bulletDamage = 10;
+
+        this.movementDelay = 2;
+        this.moveForTime = 1500
+        this.timeSinceMovement = 0.5;
     }
 
     spawn(x, y, ship) {
+        this.scene.physics.world.enable(this);
+        this.setCollideWorldBounds(true);
         this.ship = ship;
         this.health = 100;
         this.body.reset(x,y);
@@ -45,12 +50,45 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.scene.addPlayersPoints(10);
             //this.setActive(false);
         }
+        if (this.timeSinceMovement <= 0) {
+            this.timeSinceMovement = this.movementDelay;
+            this.setRandomDirectionVeloctiy(true);
+            this.scene.time.addEvent({
+                delay: this.moveForTime,
+                callback: () => {
+                  this.setRandomDirectionVeloctiy(false);
+                },
+                callbackScope: this,
+                loop: false,
+            });
+        } else {
+            this.timeSinceMovement -= 0.01
+        }
     }
     shootLaser(angleToShip) {
         const laserSpawnDistance = 70;
         const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
         const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
         this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
+    }
+    setRandomDirectionVeloctiy(active) {
+        if (active) {
+            if (Math.random() < 0.5) {
+                this.setAccelerationX(-300 + Math.random() * 200);
+            } else {
+                this.setAccelerationX(300 + Math.random() * -200);
+            }
+            if (Math.random() < 0.5) {
+                this.setAccelerationY(-300 + Math.random() * 200);
+            } else {
+                this.setAccelerationY(300 + Math.random() * -200);
+            }
+        } else {
+            this.setAccelerationX(0);
+            this.setVelocityX(0);
+            this.setAccelerationY(0);
+            this.setVelocityY(0);
+        }
     }
     
 }
@@ -178,7 +216,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.health = 1000;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
-        this.flySpeed = 500;
+        this.flySpeed = 10;
         this.bulletDamage = 50;
         this.points = 0;
         this.energy = 100;
@@ -206,7 +244,6 @@ export class PlayScene extends Phaser.Scene{
         this.backgroundSpeed = 3;
         this.shootDelay = 0.5;
         this.timeTillGunReady = 2;
-        this.shipMoveSpeed = 3;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
     }
     preload() {
@@ -411,16 +448,16 @@ export class PlayScene extends Phaser.Scene{
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             this.ship.anims.play('thrustersOn', true);
             if (this.keyW.isDown) {
-                this.moveShipY(this.ship, -this.shipMoveSpeed)
+                this.moveShipY(this.ship, -this.ship.flySpeed)
             } 
             if (this.keyS.isDown) {
-                this.moveShipY(this.ship, this.shipMoveSpeed)
+                this.moveShipY(this.ship, this.ship.flySpeed)
             } 
             if (this.keyA.isDown) {
-                this.moveShipX(this.ship, -this.shipMoveSpeed)
+                this.moveShipX(this.ship, -this.ship.flySpeed)
             } 
             if (this.keyD.isDown) {
-                this.moveShipX(this.ship, this.shipMoveSpeed)
+                this.moveShipX(this.ship, this.ship.flySpeed)
             } 
         } else {
             this.ship.anims.play('still', true);
