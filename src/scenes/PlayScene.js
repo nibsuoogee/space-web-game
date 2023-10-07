@@ -325,6 +325,13 @@ export class PlayScene extends Phaser.Scene{
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
         this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
+        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true);
+        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true);
+        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true);
+        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true);
+        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true);
+        
+        this.updateHudStatValues();
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
 
         menuButton.setInteractive();
@@ -533,6 +540,7 @@ export class PlayScene extends Phaser.Scene{
     moveShipY(ship, shipMoveSpeed) {
         ship.y += shipMoveSpeed;
     }
+
     moveShipX(ship, shipMoveSpeed) {
         ship.x += shipMoveSpeed;
     }
@@ -546,6 +554,14 @@ export class PlayScene extends Phaser.Scene{
         this.tooltipText.setVisible(false);
     }
     
+    updateHudStatValues() {
+        this.hudDamageStat.setText(`DMG: ${this.ship.bulletDamage}`);
+        this.hudFireRateStat.setText(`FR: ${this.ship.fireRate}`);
+        this.hudBulletSpeedStat.setText(`BS: ${this.ship.bulletSpeed}`);
+        this.hudHullCollisionDamageStat.setText(`HCD: ${this.ship.hullCollisionDamage}`);
+        this.hudFlySpeedStat.setText(`FS: ${this.ship.flySpeed}`);
+    }
+
     shopSlideIn(Attributes, Weapons){
         this.backgroundSpeed = 0.2;
         console.log(Attributes, Weapons)
@@ -732,7 +748,8 @@ export class PlayScene extends Phaser.Scene{
                 image.destroy();
             }
         });
-    
+        this.displayTooltip("", false);
         this.slideOutTween.play();
+        this.updateHudStatValues();
     }
 }
