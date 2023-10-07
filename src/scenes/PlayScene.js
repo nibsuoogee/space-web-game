@@ -47,7 +47,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         }
     }
     shootLaser(angleToShip) {
-        const laserSpawnDistance = 100;
+        const laserSpawnDistance = 70;
         const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
         const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
         this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
@@ -84,30 +84,23 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, laserColour) {
         super(scene, x, y, laserColour);
         scene.add.existing(this);
-        scene.physics.world.enable(this);
-        //this.body.setMass(0);
+        //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
+        // kinetic damage could be fun for certain weapon types (rocket?)
         this.scene = scene;
         this.ship = scene.ship;
         this.postFX.addBloom(0xffffff, 1.5, 1.5, 2, 2);
         this.laserSpeed = 900;
         this.laserHasHit = false;
         this.enemy;
-        
+        this.enemyBulletDamage;
     }
 
     fire(x, y, alpha) {
-        //console.log("Ship health:");
-        //console.log(this.ship.health);
         this.laserHasHit = false;
         this.body.reset(x,y);
-        //this.body.setMass(0);
-        //this.setMass(0);
-        this.body.setBounce(0);
-
         this.setActive(true);
         this.setVisible(true);
         this.setDepth(1);
-
         this.setVelocity(this.laserSpeed * Math.cos(alpha), this.laserSpeed * Math.sin(alpha))
         this.angle = Phaser.Math.RadToDeg(alpha);
     }
@@ -115,18 +108,17 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         if (!this.laserHasHit) {
-            this.scene.physics.world.collide(this, this.ship, this.laserHitsShip, null, this);
+            this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
             
             this.scene.enemyGroup.children.iterate((enemy) => {
                 this.enemy = enemy;
+                // enemy damage stored separately, so it can be referenced after enemy death
+                this.enemyBulletDamage = enemy.bulletDamage; 
                 if (enemy.active) {
-                    this.scene.physics.world.collide(this, enemy, this.laserHitsEnemy, null, this);
+                    this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
                 }
             })
-            
-            
         }
-
         if (this.x <= 0 || this.x >= this.scene.game.renderer.width || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
             this.setActive(false);
             this.setVisible(false);
@@ -135,16 +127,16 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     }
 
     laserHitsShip() {
-        //this.setVisible(false);
+        this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
-        this.ship.health -= 10;
+        this.ship.health -= this.enemyBulletDamage;
     }
 
     laserHitsEnemy() {
-        //this.setVisible(false);
+        this.setVisible(false);
         this.laserHasHit = true;
-        this.enemy.health -= 10;
+        this.enemy.health -= this.ship.bulletDamage;
     }
 }
 
@@ -154,7 +146,7 @@ class LaserGroup extends Phaser.Physics.Arcade.Group {
 
         this.createMultiple({
             classType: Laser,
-            frameQuantity: 30,
+            frameQuantity: 20,
             active: false,
             visible: false,
             key: laserColour
@@ -166,7 +158,7 @@ class LaserGroup extends Phaser.Physics.Arcade.Group {
         const laser = this.getFirstDead(false);
         if (laser) {
             laser.fire(x, y, alpha)
-            //this.zapGunSound.play();
+            //this.zapGunSound.play(); enemy laser sound
         }
     }
 }
@@ -479,7 +471,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shootLaser() {
-        const laserSpawnDistance = 200;
+        const laserSpawnDistance = 120;
         const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
