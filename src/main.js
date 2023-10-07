@@ -36,6 +36,9 @@ let GameState = {
     }
 };
 
+document.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+});
 /*
 game.state.add('GameState', GameState);
 game.state.start('GameState');

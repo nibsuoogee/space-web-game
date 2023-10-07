@@ -117,6 +117,71 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
     }
 }
 
+class Rocket extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
+        // kinetic damage could be fun for certain weapon types (rocket?)
+        this.scene = scene;
+        this.ship = scene.ship;
+        this.projectileSpeed = 900;
+        this.hasHit = false;
+        this.enemy;
+        this.lockedOnEnemy = undefined;
+    }
+
+    fire(x, y, alpha) {
+        this.lockedOnEnemy = undefined;
+        this.hasHit = false;
+        this.body.reset(x,y);
+        this.setActive(true);
+        this.setVisible(true);
+        this.setDepth(1);
+        //this.setVelocity(this.projectileSpeed * Math.cos(alpha), this.projectileSpeed * Math.sin(alpha))
+        this.angle = Phaser.Math.RadToDeg(alpha);
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        if (!this.hasHit) {
+            this.scene.enemyGroup.children.iterate((enemy) => {
+                this.enemy = enemy;
+                // enemy damage stored separately, so it can be referenced after enemy death
+                if (enemy.active) {
+                    if (this.lockedOnEnemy == undefined) {
+                        this.lockedOnEnemy = enemy;
+                        console.log("New lock!")
+                    }
+                    this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
+                }
+            })
+        }
+        if (this.x <= 0 || this.x >= this.scene.game.renderer.width || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
+            this.setActive(false);
+            this.setVisible(false);
+        }
+        if (this.lockedOnEnemy) {
+            this.homeToEnemy();
+        }
+    }
+    homeToEnemy() {
+        const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.lockedOnEnemy);
+        const angle = Phaser.Math.RadToDeg(angleToEnemy);
+        //this.setVelocity(this.projectileSpeed * Math.cos(angle), this.projectileSpeed * Math.sin(angle))
+        this.angle = angle;
+        this.setAccelerationX(this.projectileSpeed * Math.cos(angle))
+        this.setAccelerationY(this.projectileSpeed * Math.sin(angle))
+
+    }
+    laserHitsEnemy() {
+        this.setVisible(false);
+        this.hasHit = true;
+        this.enemy.health -= this.ship.bulletDamage;
+        this.lockedOnEnemy = undefined;
+    }
+}
+
 // Laser physics classes by CodeCaptain https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
 class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, laserColour) {
@@ -178,18 +243,18 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-class LaserGroup extends Phaser.Physics.Arcade.Group {
-    constructor(scene, zapGunSound, laserColour) {
+class WeaponGroup extends Phaser.Physics.Arcade.Group {
+    constructor(scene, weaponSound, weaponSprite, weaponType) {
         super(scene.physics.world, scene);
 
         this.createMultiple({
-            classType: Laser,
+            classType: weaponType,//Laser,
             frameQuantity: 20,
             active: false,
             visible: false,
-            key: laserColour
+            key: weaponSprite
         })
-        this.zapGunSound = zapGunSound;
+        this.zapGunSound = weaponSound;
     }
 
     fireLaser(x, y, alpha) {
@@ -250,6 +315,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
         this.load.image('enemy', "../../assets/images/enemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
+        this.load.image('rocket', "../../assets/images/star fighter laser long green.png");
+
         this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
             frameWidth: 180,
             frameHeight: 70,
@@ -302,9 +369,10 @@ export class PlayScene extends Phaser.Scene{
         this.repairHammer = this.sound.add("repair_hammering");
         this.repairDrill = this.sound.add("repair_drill");
         this.rocketWeapon = this.sound.add("rocket_weapon");
-        this.laserGroupBlue = new LaserGroup(this, this.rocketWeapon, 'laser');
+        this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
+        this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.enemyGroup = new EnemyGroup(this)
-        this.laserGroupRed = new LaserGroup(this, this.zapGun1, 'laserRed');
+        this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -370,11 +438,12 @@ export class PlayScene extends Phaser.Scene{
                     this.zapGun1.play();
                     //this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
-                    this.shootLaser();
+                    this.shootWeaponByGroup(this.laserGroupBlue);
                 }
                 if (this.keyShift.isDown) {
-                    this.spawnEnemy();
+                    this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
+                    this.shootWeaponByGroup(this.rocketGroup);
                 }
             } else {
                 this.timeTillGunReady -= 0.016;
@@ -472,14 +541,6 @@ export class PlayScene extends Phaser.Scene{
         
     }
 
-    checkCollisions() {
-        //this.physics.world.collide(this.player, this.enemies, this.playerEnemyCollision, null, this);
-        //this.physics.world.collide(this.projectiles, this.enemies, this.projectileEnemyCollision, null, this);
-        //this.physics.world.collide(this.enemyProjectiles, this.player, this.projectilePlayerCollision, null, this);
-        //this.physics.world.collide(this.laserGroupBlue., this.enemies, this.projectileEnemyCollision, null, this);
-        
-    }
-
     moveBackground(background, speed) {
         background.tilePositionX += speed;
     }
@@ -514,12 +575,12 @@ export class PlayScene extends Phaser.Scene{
         })
     }
 
-    shootLaser() {
+    shootWeaponByGroup(weaponGroup) {
         const laserSpawnDistance = 140;
         const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
-        this.laserGroupBlue.fireLaser(this.ship.x+ xOffset, this.ship.y + yOffset, shipAngleRad);
+        weaponGroup.fireLaser(this.ship.x+ xOffset, this.ship.y + yOffset, shipAngleRad);
     }
 
     spawnEnemy() {
