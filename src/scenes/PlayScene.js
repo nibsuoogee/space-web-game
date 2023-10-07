@@ -471,7 +471,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shootLaser() {
-        const laserSpawnDistance = 120;
+        const laserSpawnDistance = 140;
         const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
