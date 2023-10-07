@@ -294,6 +294,7 @@ export class PlayScene extends Phaser.Scene{
         //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
         this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
 
@@ -507,8 +508,17 @@ export class PlayScene extends Phaser.Scene{
         ship.x += shipMoveSpeed;
     }
 
+    displayTooltip(tooltipText, active) {
+        if (active) {
+            this.tooltipText.setText(tooltipText);
+            this.tooltipText.setVisible(true);
+            return;
+        }
+        this.tooltipText.setVisible(false);
+    }
     
     shopSlideIn(Attributes, Weapons){
+        this.backgroundSpeed = 0.2;
         console.log(Attributes, Weapons)
 
         //Scale of icons and shop
@@ -575,49 +585,87 @@ export class PlayScene extends Phaser.Scene{
         
                 var shopContainer = this.add.container(32,70, [shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton], Phaser.Geom.Rectangle.Contains)
         
-        
+                Upgrade_1_Button.on("pointerover", () => {
+                    this.displayTooltip("Increase ship health", true);
+                });
                 Upgrade_1_Button.on('pointerup', function () {
                     console.log(attributeAssets[Attributes[0]]);
                     this.shopUpgradeMeaty.play();
                     this.ship.health += 10;
         
                 }, this);
+                Upgrade_1_Button.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
+
+                Upgrade_2_Button.on("pointerover", () => {
+                    this.displayTooltip("DO SOMETHING", true);
+                });
                 Upgrade_2_Button.on('pointerup', function () {
                     console.log(attributeAssets[Attributes[1]]);
                     this.shopUpgradeMeaty.play();
         
                 }, this);
+                Upgrade_2_Button.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
+
+                Upgrade_3_Button.on("pointerover", () => {
+                    this.displayTooltip("DO SOMETHING", true);
+                });
                 Upgrade_3_Button.on('pointerup', function () {
                     console.log(attributeAssets[Attributes[2]]);
                     this.shopUpgradeMeaty.play();
         
                 }, this);
+                Upgrade_3_Button.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
+
+                Upgrade_4_Button.on("pointerover", () => {
+                    this.displayTooltip("DO SOMETHING", true);
+                });
                 Upgrade_4_Button.on('pointerup', function () {
                     console.log(attributeAssets[Attributes[3]]);
                     this.shopUpgradeMeaty.play();
                 }, this);
+                Upgrade_4_Button.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
                       
+                WeaponButton.on("pointerover", () => {
+                    this.displayTooltip("Purchase secondary X", true);
+                });
                 WeaponButton.on('pointerup', function () {
-                    console.log(weaponAssets[Weapons[0]]);
-
-        
+                    console.log(weaponAssets[Weapons[0]]);        
                 }, this);
+                WeaponButton.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
                       
+                LeaveShopButton.on("pointerover", () => {
+                    this.displayTooltip("Leave shop", true);
+                });
                 LeaveShopButton.on('pointerup', function () {
                     console.log("Leaving shop");
                     this.shopSlideOut(image);
                     this.slideOutTweenButtons(shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton);
-        
                 }, this);
-                      
+                LeaveShopButton.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
+                    
+                RepairShipButton.on("pointerover", () => {
+                    this.displayTooltip("Repair hull", true);
+                });
                 RepairShipButton.on('pointerup', function () {
                     console.log("Reapairing");
                     this.repairHammer.play();
                     this.repairDrill.play();
-
-        
                 }, this);
-        
+                RepairShipButton.on("pointerout", () => {
+                    this.displayTooltip("", false);
+                });
             }
         });
 
@@ -644,6 +692,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shopSlideOut(image) {
+        this.backgroundSpeed = 3;
         this.slideOutTween = this.tweens.add({
             targets: image,
             x: -1000,
