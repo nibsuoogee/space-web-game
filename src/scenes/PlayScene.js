@@ -88,10 +88,10 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //this.body.setMass(0);
         this.scene = scene;
         this.ship = scene.ship;
+        this.enemy = scene.enemy;
         this.postFX.addBloom(0xffffff, 1.5, 1.5, 2, 2);
         this.laserSpeed = 900;
         this.laserHasHit = false;
-        this.enemy;
         
     }
 
@@ -100,9 +100,8 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //console.log(this.ship.health);
         this.laserHasHit = false;
         this.body.reset(x,y);
-        //this.body.setMass(0);
+        this.body.setMass(0);
         //this.setMass(0);
-        this.body.setBounce(0);
 
         this.setActive(true);
         this.setVisible(true);
@@ -138,13 +137,13 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         //this.setVisible(false);
         this.laserHasHit = true;
         this.scene.laserDamage.play();
-        this.ship.health -= 10;
+        this.ship.health -= this.enemy.bulletDamage;
     }
 
     laserHitsEnemy() {
         //this.setVisible(false);
         this.laserHasHit = true;
-        this.enemy.health -= 10;
+        this.enemy.health -= this.ship.bulletDamage;
     }
 }
 
@@ -347,7 +346,7 @@ export class PlayScene extends Phaser.Scene{
             if (!this.timerStarted) {
                 this.timerStarted = true;
                 const delay = 2000; // 2 seconds
-                const ShopDelay = 2000;
+                const ShopDelay = 20000;
               
                 // Define game boundaries (adjust these values to fit your game)
                 const minX = 0;
