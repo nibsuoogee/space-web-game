@@ -436,6 +436,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.laserHasHit = true;
         this.scene.laserDamage.play();
         this.ship.health -= this.enemyBulletDamage;
+        this.scene.displayDamageOverlay();
     }
 
     laserHitsEnemy() {
@@ -536,6 +537,7 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
         this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
@@ -782,6 +784,25 @@ export class PlayScene extends Phaser.Scene{
 
     moveBackground(background, speed) {
         background.tilePositionX += speed;
+    }
+
+    displayDamageOverlay() {
+        this.damageOverlay.setVisible(1);
+        this.damageOverlay.setAlpha(0); // Initially transparent
+        this.damageOverlay.setDepth(9999); // Make sure it's on top of everything
+        const duration = 200; // 1 second (adjust as needed)
+        // Create a tween to fade in and out the overlay
+        this.tweens.add({
+            targets: this.damageOverlay,
+            alpha: 0.5, // Set the desired tint opacity (adjust as needed)
+            duration: duration / 2, // Fade in for half of the duration
+            yoyo: true, // Yoyo to fade out
+            repeat: 0, // Repeat once to fade out after fading in
+            onComplete: () => {
+                // Callback function when the tween is complete
+                this.damageOverlay.setVisible(0); // Remove the overlay after the animation
+            }
+        });
     }
 
     checkPlayerAlive() {
