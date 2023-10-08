@@ -31,10 +31,14 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
+        this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true);
+        this.healthText.setTint(0xff0000);
     }
     
     preUpdate() {
         this.timeSinceShot -= this.fireRate;
+        this.healthText.setPosition(this.x - 20, this.y - 50);
+        this.healthText.setText(`${this.health}`)
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
         this.angle = Phaser.Math.RadToDeg(angleToShip) +90;
         if (this.timeSinceShot <= 0) {
@@ -48,6 +52,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
+            this.healthText.setVisible(false);
             //this.setActive(false);
         }
         if (this.timeSinceMovement <= 0) {
@@ -121,22 +126,19 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         scene.add.existing(this);
-        scene.physics.world.enable(this); //off so that lasers don't collide and transfer kinetic energy
-        // kinetic damage could be fun for certain weapon types (rocket?)
+        scene.physics.world.enable(this);
         this.setActive(true);
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
-        this.postFX.addBloom(0x9a9afff, 1.2, 1.2, 2, 2);
+        this.postFX.addBloom(0x9a9aff, 1.2, 1.2, 2, 2);
         this.enemy;
-        this.tickDelay = 1;
-        this.timeToTick = 1;
+        this.isFiring = false;
     }
 
     fire(x, y, alpha) {
-        if (this.timeToTick <= 0) {
-            this.timeToTick = this.tickDelay;
-            console.log("TICK")
+        if (!this.isFiring) {
+            this.isFiring = true;
             const offsetX = Math.cos(alpha) * 1090;
             const offsetY = Math.sin(alpha) * 1090;
             this.body.reset(x + offsetX, y + offsetY);
@@ -144,26 +146,33 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
             this.setVisible(true);
             this.setDepth(1);
             this.angle = Phaser.Math.RadToDeg(alpha);
-            this.scene.enemyGroup.children.iterate((enemy) => {
-                if (enemy.active) {
-                    this.enemy = enemy;
-                    this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
-                }
-            })   
+        } else {
+            const offsetX = Math.cos(alpha) * 1090;
+            const offsetY = Math.sin(alpha) * 1090;
+            this.body.reset(x + offsetX, y + offsetY);
+            this.angle = Phaser.Math.RadToDeg(alpha);
         }
+    }
+
+    stopFiring() {
+        this.setActive(false);
+        this.setVisible(false);
+        this.isFiring = false;
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
-        this.timeToTick -= 0.2;
-        if (this.timeToTick <= -1) {
-            this.setActive(false);
-            this.setVisible(false);
-        }
+        this.scene.enemyGroup.children.iterate((enemy) => {
+            if (enemy.active) {
+                this.enemy = enemy;
+                this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
+            }
+        })   
     }
 
     laserHitsEnemy() {
-        this.enemy.health -= this.ship.bulletDamage * 10;
+        this.enemy.health -= this.ship.bulletDamage * 0.08;
+        console.log(this.enemy.health)
         console.log("Beam hits enemy!")
     }
 }
@@ -489,6 +498,10 @@ export class PlayScene extends Phaser.Scene{
             if (this.keyE.isDown) {
                 const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
                 this.beamLaser.fire(this.ship.x, this.ship.y, shipAngleRad);
+            }
+            if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
+                console.log("E released")
+                this.beamLaser.stopFiring();
             }
 
             if (this.timeTillGunReady <= 0) {
