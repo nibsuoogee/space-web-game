@@ -18,6 +18,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.flySpeed = 500;
         this.bulletDamage = 10;
 
+        this.dragValue = 300;
         this.movementDelay = 2;
         this.moveForTime = 1500
         this.timeSinceMovement = 0.5;
@@ -31,6 +32,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
+        this.body.setDrag(this.dragValue, this.dragValue)
         this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true);
         this.healthText.setTint(0xff0000);
     }
@@ -90,9 +92,9 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             }
         } else {
             this.setAccelerationX(0);
-            this.setVelocityX(0);
+            //this.setVelocityX(0);
             this.setAccelerationY(0);
-            this.setVelocityY(0);
+            //this.setVelocityY(0);
         }
     }
     
@@ -262,6 +264,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.ship = scene.ship;
         this.enemy;
 
+        this.pullEnemies = false;
         this.bombFuse = 1000;
         this.blackHoleDuration = 2000;
         this.explosionDuration = 133;
@@ -327,7 +330,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     activateBlackHole() {
         this.anims.stop('BombAnimation');
         this.play('BlackHoleAnimation');
-        this.explosionActive = true;
+        //this.explosionActive = true;
+        this.pullEnemies = true;
         this.scene.time.addEvent({
             delay: this.blackHoleDuration,
             callback: () => {
@@ -355,32 +359,40 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     deactivateExplosion() {
         this.anims.stop('BlackHoleExplosionAnimation');
         this.explosionActive = false;
+        this.pullEnemies = false;
         //this.setActive(true);
-        //this.setVisible(true);
+        this.setVisible(false);
     }
 
     preUpdate(time, delta) {
         this.recharge -= 0.05;
         super.preUpdate(time, delta);
-        if (this.explosionActive) {
-            this.scene.enemyGroup.children.iterate((enemy) => {
-                this.enemy = enemy;
-                if (enemy.active) {
+        this.scene.enemyGroup.children.iterate((enemy) => {
+            this.enemy = enemy;
+            if (enemy.active) {
+                if (this.pullEnemies) {
+                    const angleToBomb = Phaser.Math.Angle.BetweenPoints(enemy, this);
+                    const angle = Phaser.Math.RadToDeg(angleToBomb);
+                    enemy.setVelocityX(500 * Math.cos(angle))
+                    enemy.setVelocityY(500 * Math.sin(angle))
+                }
+                if (this.explosionActive) {
                     this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
                 }
-            })
-            this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
-        }
+            }
+        })
+        this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
+    
     }
 
     hitsShip() {
         //this.scene.laserDamage.play();
-        this.ship.health -= 3//this.ship.bulletDamage / 10;
+        this.ship.health -= 10//this.ship.bulletDamage / 10;
         console.log("hitting ship")
     }
 
     hitsEnemy() {
-        this.enemy.health -= 3//this.ship.bulletDamage / 10;
+        this.enemy.health -= 10//this.ship.bulletDamage / 10;
     }
 }
 
@@ -436,7 +448,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.laserHasHit = true;
         this.scene.laserDamage.play();
         this.ship.health -= this.enemyBulletDamage;
-        this.scene.displayDamageOverlay();
+        this.scene.displayTintOverlay('0x00ff00');
     }
 
     laserHitsEnemy() {
@@ -786,8 +798,9 @@ export class PlayScene extends Phaser.Scene{
         background.tilePositionX += speed;
     }
 
-    displayDamageOverlay() {
+    displayTintOverlay(colour) {
         this.damageOverlay.setVisible(1);
+        this.damageOverlay.fillColour(colour);
         this.damageOverlay.setAlpha(0); // Initially transparent
         this.damageOverlay.setDepth(9999); // Make sure it's on top of everything
         const duration = 200; // 1 second (adjust as needed)
