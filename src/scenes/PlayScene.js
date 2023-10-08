@@ -361,6 +361,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.explosionActive = false;
         this.pullEnemies = false;
         //this.setActive(true);
+        this.scene.displayTintOverlay('0xffffff');
         this.setVisible(false);
     }
 
@@ -377,18 +378,18 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                     enemy.setVelocityY(500 * Math.sin(angle))
                 }
                 if (this.explosionActive) {
-                    this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
+                this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
                 }
             }
         })
-        this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
-    
+        if (this.explosionActive) {
+            this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
+        }
     }
 
     hitsShip() {
         //this.scene.laserDamage.play();
         this.ship.health -= 10//this.ship.bulletDamage / 10;
-        console.log("hitting ship")
     }
 
     hitsEnemy() {
@@ -448,7 +449,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.laserHasHit = true;
         this.scene.laserDamage.play();
         this.ship.health -= this.enemyBulletDamage;
-        this.scene.displayTintOverlay('0x00ff00');
+        this.scene.displayTintOverlay('0xff0000');
     }
 
     laserHitsEnemy() {
@@ -800,7 +801,7 @@ export class PlayScene extends Phaser.Scene{
 
     displayTintOverlay(colour) {
         this.damageOverlay.setVisible(1);
-        this.damageOverlay.fillColour(colour);
+        this.damageOverlay.setFillStyle(colour, 1);
         this.damageOverlay.setAlpha(0); // Initially transparent
         this.damageOverlay.setDepth(9999); // Make sure it's on top of everything
         const duration = 200; // 1 second (adjust as needed)
