@@ -268,10 +268,9 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.recharge = 1;
         this.explosionActive = false;
         this.dragValue = 350;
-
         this.anims.create({
             key: 'BombAnimation',
-            frames: this.anims.generateFrameNumbers('Bomb', {
+            frames: this.anims.generateFrameNumbers('bomb', {
                 start: 0,
                 end: 4,
             }),
@@ -291,8 +290,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.setVisible(true);
             this.setDepth(5);
             this.setVelocity(velocityX, velocityY)
-            this.play('BombAnimation');
             this.body.setDrag(this.dragValue, this.dragValue)
+            this.play('BombAnimation');
             this.scene.time.addEvent({
                 delay: this.bombFuse,
                 callback: () => {
@@ -483,8 +482,8 @@ export class PlayScene extends Phaser.Scene{
         });
         this.load.image('beamLaser', "../../assets/images/star fighter max long blue.png");
         this.load.spritesheet('bomb', "../../assets/images/BlackHoleBombSprite.png", {
-            frameWidth: 20,
-            frameHeight: 20,
+            frameWidth: 13,
+            frameHeight: 13,
         });
 
         this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
