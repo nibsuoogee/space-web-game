@@ -127,7 +127,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, sprite);
         scene.add.existing(this);
         scene.physics.world.enable(this);
-        this.setActive(true);
+        this.setActive(false);
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
@@ -256,6 +256,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.maxRecharge = 5;
         this.recharge = 1;
         this.explosionActive = false;
+        this.dragValue = 350;
     }
 
     fire(x, y, alpha, velocityX, velocityY) {
@@ -268,8 +269,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.setActive(true);
             this.setVisible(true);
             this.setDepth(5);
-            this.setVelocity(300 * Math.cos(alpha), 300 * Math.sin(alpha))
-            //this.angle = Phaser.Math.RadToDeg(alpha);
+            this.setVelocity(velocityX, velocityY)
+            this.body.setDrag(this.dragValue, this.dragValue)
             this.scene.time.addEvent({
                 delay: this.bombFuse,
                 callback: () => {
@@ -281,7 +282,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         }
     }
     activateExplosion() {
-        console.log("explosion active!");
         this.explosionActive = true;
         this.scene.time.addEvent({
             delay: this.explosionDuration,
@@ -293,8 +293,9 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         });
     }
     deactivateExplosion() {
-        console.log("DEACTIVATED EXPLOSIN");
         this.explosionActive = false;
+        //this.setActive(true);
+        //this.setVisible(true);
     }
     preUpdate(time, delta) {
         this.recharge -= 0.05;
@@ -311,11 +312,11 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
     hitsShip() {
         //this.scene.laserDamage.play();
-        this.ship.health -= 3//this.ship.bulletDamage * 10;
+        this.ship.health -= 3//this.ship.bulletDamage / 10;
         console.log("hitting ship")
     }
     hitsEnemy() {
-        this.enemy.health -= 3//this.ship.bulletDamage * 10;
+        this.enemy.health -= 3//this.ship.bulletDamage / 10;
     }
 }
 
@@ -409,6 +410,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.world.enable(this);
         this.setCollideWorldBounds(true);
+        this.dragValue = 800;
+        this.body.setDrag(this.dragValue, this.dragValue)
 
         this.isShooting = false;
         this.shootFromFirstPosition = true;
@@ -418,7 +421,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.health = 1000;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
-        this.flySpeed = 10;
+        this.flySpeed = 400;
         this.bulletDamage = 50;
         this.points = 0;
         this.energy = 100;
@@ -681,19 +684,25 @@ export class PlayScene extends Phaser.Scene{
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             this.ship.anims.play('thrustersOn', true);
             if (this.keyW.isDown) {
-                this.moveShipY(this.ship, -this.ship.flySpeed)
+                //this.moveShipY(this.ship, -this.ship.flySpeed)
+                this.ship.setVelocityY(-this.ship.flySpeed)
             } 
             if (this.keyS.isDown) {
-                this.moveShipY(this.ship, this.ship.flySpeed)
+                //this.moveShipY(this.ship, this.ship.flySpeed)
+                this.ship.setVelocityY(this.ship.flySpeed)
             } 
             if (this.keyA.isDown) {
-                this.moveShipX(this.ship, -this.ship.flySpeed)
+                //this.moveShipX(this.ship, -this.ship.flySpeed)
+                this.ship.setVelocityX(-this.ship.flySpeed)
             } 
             if (this.keyD.isDown) {
-                this.moveShipX(this.ship, this.ship.flySpeed)
+                //this.moveShipX(this.ship, this.ship.flySpeed)
+                this.ship.setVelocityX(this.ship.flySpeed)
             } 
         } else {
             this.ship.anims.play('still', true);
+            //this.ship.setVelocityX(0);
+            //this.ship.setVelocityY(0);            
         }
         
     }
@@ -733,7 +742,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shootWeaponByGroup(weaponGroup) {
-        const laserSpawnDistance = 140;
+        const laserSpawnDistance = 150;
         const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
