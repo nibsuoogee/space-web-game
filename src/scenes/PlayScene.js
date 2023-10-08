@@ -263,7 +263,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.enemy;
 
         this.bombFuse = 1000;
-        this.explosionDuration = 1000;
+        this.blackHoleDuration = 2000;
+        this.explosionDuration = 133;
         this.maxRecharge = 5;
         this.recharge = 1;
         this.explosionActive = false;
@@ -275,6 +276,26 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                 end: 4,
             }),
             frameRate: 10,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: 'BlackHoleAnimation',
+            frames: this.anims.generateFrameNumbers('BlackHole', {
+                start: 0,
+                end: 30,
+            }),
+            frameRate: 15,
+            repeat: 0,
+        });
+
+        this.anims.create({
+            key: 'BlackHoleExplosionAnimation',
+            frames: this.anims.generateFrameNumbers('BlackHole', {
+                start: 30,
+                end: 37,
+            }),
+            frameRate: 60,
             repeat: -1,
         });
     }
@@ -295,14 +316,31 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.scene.time.addEvent({
                 delay: this.bombFuse,
                 callback: () => {
-                this.activateExplosion();
+                this.activateBlackHole();
                 },
                 callbackScope: this,
                 loop: false,
             });
         }
     }
+
+    activateBlackHole() {
+        this.anims.stop('BombAnimation');
+        this.play('BlackHoleAnimation');
+        this.explosionActive = true;
+        this.scene.time.addEvent({
+            delay: this.blackHoleDuration,
+            callback: () => {
+            this.activateExplosion();
+            },
+            callbackScope: this,
+            loop: false,
+        });
+    }
+
     activateExplosion() {
+        this.anims.stop('BlackHoleAnimation');
+        this.play('BlackHoleExplosionAnimation');
         this.explosionActive = true;
         this.scene.time.addEvent({
             delay: this.explosionDuration,
@@ -313,11 +351,14 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             loop: false,
         });
     }
+
     deactivateExplosion() {
+        this.anims.stop('BlackHoleExplosionAnimation');
         this.explosionActive = false;
         //this.setActive(true);
         //this.setVisible(true);
     }
+
     preUpdate(time, delta) {
         this.recharge -= 0.05;
         super.preUpdate(time, delta);
@@ -331,11 +372,13 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
         }
     }
+
     hitsShip() {
         //this.scene.laserDamage.play();
         this.ship.health -= 3//this.ship.bulletDamage / 10;
         console.log("hitting ship")
     }
+
     hitsEnemy() {
         this.enemy.health -= 3//this.ship.bulletDamage / 10;
     }
@@ -485,7 +528,10 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 13,
             frameHeight: 13,
         });
-
+        this.load.spritesheet('BlackHole', "../../assets/images/BlackHoleSprite.png", {
+            frameWidth: 40,
+            frameHeight: 40,
+        });
         this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
             frameWidth: 180,
             frameHeight: 70,
