@@ -187,6 +187,16 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.hasHit = false;
         this.enemy;
         this.lockedOnEnemy = undefined;
+
+        this.anims.create({
+            key: 'rocketAnimation',
+            frames: this.anims.generateFrameNumbers('rocket', {
+                start: 0,
+                end: 4,
+            }),
+            frameRate: 20,
+            repeat: -1,
+        });
     }
 
     fire(x, y, alpha) {
@@ -198,6 +208,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.setDepth(1);
         //this.setVelocity(this.projectileSpeed * Math.cos(alpha), this.projectileSpeed * Math.sin(alpha))
         this.angle = Phaser.Math.RadToDeg(alpha);
+        this.play('rocketAnimation');
     }
 
     preUpdate(time, delta) {
@@ -256,6 +267,16 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.maxRecharge = 5;
         this.recharge = 1;
         this.explosionActive = false;
+
+        this.anims.create({
+            key: 'BombAnimation',
+            frames: this.anims.generateFrameNumbers('Bomb', {
+                start: 0,
+                end: 4,
+            }),
+            frameRate: 10,
+            repeat: -1,
+        });
     }
 
     fire(x, y, alpha, velocityX, velocityY) {
@@ -269,6 +290,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.setVisible(true);
             this.setDepth(5);
             this.setVelocity(300 * Math.cos(alpha), 300 * Math.sin(alpha))
+            this.play('BombAnimation');
             //this.angle = Phaser.Math.RadToDeg(alpha);
             this.scene.time.addEvent({
                 delay: this.bombFuse,
@@ -452,9 +474,15 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
         this.load.image('enemy', "../../assets/images/enemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
-        this.load.image('rocket', "../../assets/images/star fighter laser long green.png");
+        this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
+            frameWidth: 35,
+            frameHeight: 16,
+        });
         this.load.image('beamLaser', "../../assets/images/star fighter max long blue.png");
-        this.load.image('bomb', "../../assets/images/button.png");
+        this.load.spritesheet('bomb', "../../assets/images/BlackHoleBombSprite.png", {
+            frameWidth: 20,
+            frameHeight: 20,
+        });
 
         this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
             frameWidth: 180,
