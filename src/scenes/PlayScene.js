@@ -188,7 +188,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.projectileSpeed = 900;
         this.hasHit = false;
         this.enemy;
-        this.lockedOnEnemy = undefined;
+        this.lockedOnEnemy = undefined;;
 
         this.anims.create({
             key: 'rocketAnimation',
@@ -218,13 +218,14 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         if (!this.hasHit) {
             this.scene.enemyGroup.children.iterate((enemy) => {
                 this.enemy = enemy;
-                // enemy damage stored separately, so it can be referenced after enemy death
                 if (enemy.active) {
                     if (this.lockedOnEnemy == undefined) {
                         this.lockedOnEnemy = enemy;
-                        console.log("New lock!")
                     }
                     this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
+                    if (this.lockedOnEnemy) {
+                        this.homeToEnemy();
+                    }
                 }
             })
         }
@@ -232,18 +233,19 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
             this.setActive(false);
             this.setVisible(false);
         }
-        if (this.lockedOnEnemy) {
-            this.homeToEnemy();
-        }
     }
     homeToEnemy() {
+        const distToEnemy = Phaser.Math.Distance.BetweenPoints(this, this.lockedOnEnemy);
         const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.lockedOnEnemy);
         const angle = Phaser.Math.RadToDeg(angleToEnemy);
-        //this.setVelocity(this.projectileSpeed * Math.cos(angle), this.projectileSpeed * Math.sin(angle))
         this.angle = angle;
-        this.setAccelerationX(this.projectileSpeed * Math.cos(angle))
-        this.setAccelerationY(this.projectileSpeed * Math.sin(angle))
-
+        if (distToEnemy > 200) {
+            this.setVelocityX(this.projectileSpeed/2 * Math.cos(angle))
+            this.setVelocityY(this.projectileSpeed/2 * Math.sin(angle))
+        } else {
+            this.setAccelerationX(this.projectileSpeed/2 * Math.cos(angle))
+            this.setAccelerationY(this.projectileSpeed/2 * Math.sin(angle))
+        }
     }
     laserHitsEnemy() {
         this.setVisible(false);
@@ -259,7 +261,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.world.enable(this); //off so that lasers don't collide and transfer kinetic energy
         this.setActive(true);
-        this.setVisible(true);
+        this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
         this.enemy;
@@ -310,6 +312,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.recharge = this.maxRecharge;
             this.body.reset(x,y);
             this.setScale(5,5)
+            this.body.setSize(10,10, 5)
             this.setActive(true);
             this.setVisible(true);
             this.setDepth(5);
@@ -371,19 +374,30 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.scene.enemyGroup.children.iterate((enemy) => {
             this.enemy = enemy;
             if (enemy.active) {
+                const distToEnemy = Phaser.Math.Distance.BetweenPoints(this, enemy);
                 if (this.pullEnemies) {
                     const angleToBomb = Phaser.Math.Angle.BetweenPoints(enemy, this);
                     const angle = Phaser.Math.RadToDeg(angleToBomb);
-                    enemy.setVelocityX(500 * Math.cos(angle))
-                    enemy.setVelocityY(500 * Math.sin(angle))
+                    if (distToEnemy > 0) {
+                        enemy.setVelocityX(1/distToEnemy * 50000 * Math.cos(angle))
+                        enemy.setVelocityY(1/distToEnemy * 50000 * Math.sin(angle))
+                    }
                 }
                 if (this.explosionActive) {
-                this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
+                    if (distToEnemy < 500) {
+                        this.hitsEnemy();
+                    }
+                    //this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
                 }
             }
         })
         if (this.explosionActive) {
-            this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
+            //console.log("Distance:")
+            const distToShip = Phaser.Math.Distance.BetweenPoints(this, this.ship);
+            if (distToShip < 500) {
+                this.hitsShip();
+            }
+            //this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
         }
     }
 
@@ -689,7 +703,6 @@ export class PlayScene extends Phaser.Scene{
                     this.shootWeaponByGroup(this.rocketGroup);
                 }
                 if (this.keyF.isDown) {
-                    console.log("F pressed")
                     this.timeTillGunReady = this.shootDelay;
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
                 }
