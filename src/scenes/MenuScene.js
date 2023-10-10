@@ -16,7 +16,6 @@ export class MenuScene extends Phaser.Scene{
 
         this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-03.mp3");
         this.load.audio("laser_damage", "../../assets/sfx/star-fighter-laser-damage-hull.mp3");
-        this.load.audio("player_destruction", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
         
     }
     create() {

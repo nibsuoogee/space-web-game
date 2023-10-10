@@ -51,7 +51,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         }
         if (this.health <= 0) {
             this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
-            this.scene.playerDestruction.play();
+            this.scene.enemyExplosion.play();
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
@@ -649,6 +649,9 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
         this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
         this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
+        this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
+        this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
+        
 
         
     }
@@ -676,13 +679,14 @@ export class PlayScene extends Phaser.Scene{
 
         this.zapGun1 = this.sound.add("zap_gun_1")
         this.laserDamage = this.sound.add("laser_damage")
-        this.playerDestruction = this.sound.add("player_destruction")
         this.shopZap = this.sound.add("shop_zap")
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.repairHammer = this.sound.add("repair_hammering");
         this.repairDrill = this.sound.add("repair_drill");
         this.rocketWeapon = this.sound.add("rocket_weapon");
         this.scrapSound = this.sound.add("scrap_pick_up");
+        this.enemyExplosion = this.sound.add("enemy_explosion");
+        this.dodgeSound = this.sound.add("dodge_sound");
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
@@ -931,7 +935,6 @@ export class PlayScene extends Phaser.Scene{
     }
 
     playerDeath() {
-        this.playerDestruction.play();
         console.log("YOU DIED!");
         this.dropLoop.stop();
     }
@@ -975,6 +978,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     dodgeRoll() {
+        this.dodgeSound.play();
         this.ship.setInvincible(true); 
         this.time.addEvent({
             delay: this.ship.dodgeDelay,
