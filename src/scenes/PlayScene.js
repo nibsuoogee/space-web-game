@@ -643,7 +643,11 @@ export class PlayScene extends Phaser.Scene{
 
         //this.healthPercent = this.add.text(50, -50, '', { fontFamily: 'Cambria math' }).setFontSize(18);
         //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
+        //this.healthPercent = this.add.text(20, this.game.renderer.height * 0.8, 'init', { fontFamily: 'Cambria math', autoRound: false }).setFontSize(20);
         this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
+
+        //this.asdf.setScale(2,2)
+        //this.asdf.setTint('0x00ff00')
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
         this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
@@ -830,19 +834,17 @@ export class PlayScene extends Phaser.Scene{
     displayTintOverlay(colour) {
         this.damageOverlay.setVisible(1);
         this.damageOverlay.setFillStyle(colour, 1);
-        this.damageOverlay.setAlpha(0); // Initially transparent
-        this.damageOverlay.setDepth(9999); // Make sure it's on top of everything
-        const duration = 200; // 1 second (adjust as needed)
-        // Create a tween to fade in and out the overlay
+        this.damageOverlay.setAlpha(0);
+        this.damageOverlay.setDepth(9999);
+        const duration = 200;
         this.tweens.add({
             targets: this.damageOverlay,
-            alpha: 0.5, // Set the desired tint opacity (adjust as needed)
-            duration: duration / 2, // Fade in for half of the duration
-            yoyo: true, // Yoyo to fade out
-            repeat: 0, // Repeat once to fade out after fading in
+            alpha: 0.5,
+            duration: duration / 2,
+            yoyo: true,
+            repeat: 0,
             onComplete: () => {
-                // Callback function when the tween is complete
-                this.damageOverlay.setVisible(0); // Remove the overlay after the animation
+                this.damageOverlay.setVisible(0);
             }
         });
     }
