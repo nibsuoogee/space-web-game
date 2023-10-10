@@ -651,6 +651,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
         this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
         this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
+        this.load.audio("thruster", "../../assets/sfx/player-ship-thruster.mp3");
+
         
 
         
@@ -687,6 +689,7 @@ export class PlayScene extends Phaser.Scene{
         this.scrapSound = this.sound.add("scrap_pick_up");
         this.enemyExplosion = this.sound.add("enemy_explosion");
         this.dodgeSound = this.sound.add("dodge_sound");
+        this.thruster = this.sound.add("thruster", {volume: 0.3});
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
@@ -865,6 +868,9 @@ export class PlayScene extends Phaser.Scene{
     playerMove() {
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             this.ship.anims.play('thrustersOn', true);
+            if (!this.thruster.isPlaying) {
+                this.thruster.play();
+            }
             if (this.keyW.isDown) {
                 //this.moveShipY(this.ship, -this.ship.flySpeed)
                 this.ship.setVelocityY(-this.ship.flySpeed)
@@ -883,6 +889,9 @@ export class PlayScene extends Phaser.Scene{
             } 
         } else {
             this.ship.anims.play('still', true);
+            if (this.thruster.isPlaying) {
+                this.thruster.stop();
+            }
             //this.ship.setVelocityX(0);
             //this.ship.setVelocityY(0);            
         }
