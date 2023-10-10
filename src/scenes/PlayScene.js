@@ -50,6 +50,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             }
         }
         if (this.health <= 0) {
+            this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
             this.scene.playerDestruction.play();
             this.setActive(false);
             this.setVisible(false);
@@ -498,6 +499,62 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
     }
 }
 
+class Scrap extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
+        // kinetic damage could be fun for certain weapon types (rocket?)
+        this.scene = scene;
+        this.ship = scene.ship;
+        this.postFX.addBloom(0xffff88, 1, 1, 1.5, 0.5);
+        this.scrapValue = 25;
+        this.dragValue = 300;
+    }
+
+    fire(x, y, alpha) {
+        this.body.reset(x,y);
+        this.setActive(true);
+        this.setVisible(true);
+        this.setDepth(1);
+        this.body.setDrag(this.dragValue, this.dragValue)
+        const endScale = 1.3;
+        const duration = 2000;
+        this.scene.tweens.add({
+            targets: this,
+            scaleX: endScale,
+            scaleY: endScale,
+            duration: duration,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        this.homeToPlayer();
+    }
+
+    homeToPlayer() {
+        const distToShip = Phaser.Math.Distance.BetweenPoints(this, this.ship);
+        const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
+        const angle = angleToShip//Phaser.Math.RadToDeg(angleToEnemy);
+        if (distToShip > 0 && distToShip < 300) {
+            this.setVelocityX((30000/distToShip) * Math.cos(angle))
+            this.setVelocityY((30000/distToShip) * Math.sin(angle))
+        }   
+        if (distToShip < 20) {
+            this.AbsorbIntoPlayer();
+        }
+    }
+
+    AbsorbIntoPlayer() {
+        this.scene.addPlayersScrap(this.scrapValue);
+        this.setActive(false);
+        this.setVisible(false);
+    }
+}
+
 class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'ship');
@@ -518,6 +575,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.points = 0;
+        this.scrap = 0;
         this.energy = 100;
         this.energyGeneration = 10;
         this.energyUsage = 1;
@@ -572,6 +630,7 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.image('scrap', "../../assets/images/scrap-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
         this.load.image('shop', "../../assets/images/shop.png");
@@ -589,6 +648,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
         this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
         this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
+        this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
+
         
     }
     create() {
@@ -621,12 +682,14 @@ export class PlayScene extends Phaser.Scene{
         this.repairHammer = this.sound.add("repair_hammering");
         this.repairDrill = this.sound.add("repair_drill");
         this.rocketWeapon = this.sound.add("rocket_weapon");
+        this.scrapSound = this.sound.add("scrap_pick_up");
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
         this.bomb = new Bomb(this, 0, 0, 'bomb');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
+        this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap)
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -638,17 +701,11 @@ export class PlayScene extends Phaser.Scene{
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
 
-        //this.gunReadyText = this.add.text(this.game.renderer.width / 50, this.game.renderer.height * 0.90, 'GUN READY', { fontFamily: 'Cambria math' }).setFontSize(18);
-        //this.gunReadyTimeText = this.add.text(this.game.renderer.width / 40, this.game.renderer.height * 0.95, '', { fontFamily: 'Cambria math' }).setFontSize(18);
-
-        //this.healthPercent = this.add.text(50, -50, '', { fontFamily: 'Cambria math' }).setFontSize(18);
-        //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
-        //this.healthPercent = this.add.text(20, this.game.renderer.height * 0.8, 'init', { fontFamily: 'Cambria math', autoRound: false }).setFontSize(20);
         this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
 
-        //this.asdf.setScale(2,2)
-        //this.asdf.setTint('0x00ff00')
-        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
+        this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(1);
         this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
         this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true);
@@ -715,6 +772,7 @@ export class PlayScene extends Phaser.Scene{
                     //this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
                     this.shootWeaponByGroup(this.laserGroupBlue);
+                    //this.shootWeaponByGroup(this.scrapGroup);
                 }
                 if (this.keyR.isDown) {
                     this.rocketWeapon.play();
@@ -864,6 +922,12 @@ export class PlayScene extends Phaser.Scene{
     addPlayersPoints(points) {
         this.ship.points += points;
         this.scoreCounter.setText(`${this.ship.points} pts`);
+    }
+
+    addPlayersScrap(scrap) {
+        this.ship.scrap += scrap;
+        this.scrapCounter.setText(`${this.ship.scrap}`);
+        this.scrapSound.play();
     }
 
     playerDeath() {
