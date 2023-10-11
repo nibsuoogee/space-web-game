@@ -30,17 +30,16 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.ship = ship;
         this.health = 100;
         this.body.reset(x,y);
+        this.setDepth(1);
         this.setActive(true);
         this.setVisible(true);
         this.body.setDrag(this.dragValue, this.dragValue)
-        this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true);
+        this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true).setDepth(2);
         this.healthText.setTint(0xff0000);
     }
     
     preUpdate() {
         this.timeSinceShot -= this.fireRate;
-        this.healthText.setPosition(this.x - 20, this.y - 50);
-        this.healthText.setText(`${this.health}`)
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
         this.angle = Phaser.Math.RadToDeg(angleToShip) +90;
         if (this.timeSinceShot <= 0) {
@@ -49,15 +48,11 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
                 this.timeSinceShot = this.gunDelay;
             }
         }
-        if (this.health <= 0) {
-            this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
-            this.scene.enemyExplosion.play();
-            this.setActive(false);
-            this.setVisible(false);
-            this.scene.addPlayersPoints(10);
-            this.healthText.setVisible(false);
-            //this.setActive(false);
-        }
+        this.checkMovement();
+        this.checkHealth();
+    }
+
+    checkMovement() {
         if (this.timeSinceMovement <= 0) {
             this.timeSinceMovement = this.movementDelay;
             this.setRandomDirectionVeloctiy(true);
@@ -71,6 +66,20 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             });
         } else {
             this.timeSinceMovement -= 0.01
+        }
+    }
+    checkHealth() {
+        if (this.health <= 0) {
+            this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
+            this.scene.enemyExplosion.play();
+            this.setActive(false);
+            this.setVisible(false);
+            this.scene.addPlayersPoints(10);
+            this.healthText.setVisible(false);
+            //this.setActive(false);
+        } else {
+            this.healthText.setPosition(this.x - 20, this.y - 50);
+            this.healthText.setText(`${this.health}`)
         }
     }
     shootLaser(angleToShip) {
@@ -124,6 +133,15 @@ class OrangeEnemy extends Enemy {
         this.moveForTime = 1500
         this.timeSinceMovement = 0.5;
     }
+
+    shootLaser(angleToShip) {
+        const laserSpawnDistance = 70;
+        const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
+        const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip+(2*Math.PI/20));
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip-(2*Math.PI/20));
+    }
 }
 
 class BlueEnemy extends Enemy {
@@ -135,9 +153,9 @@ class BlueEnemy extends Enemy {
         this.ship;
         this.scene = scene;
         this.timeSinceShot = 4;
-        this.gunDelay = 4;
+        this.gunDelay = 6;
+        this.recharge = 0.01;
 
-        this.fireRate = 0.016;
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
         this.bulletSpeed = 1000;
@@ -148,6 +166,27 @@ class BlueEnemy extends Enemy {
         this.movementDelay = 2;
         this.moveForTime = 1500
         this.timeSinceMovement = 0.5;
+    }
+    preUpdate() {
+        this.timeSinceShot -= this.recharge;
+        const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
+        const aimError = (Math.random()*0.4)-0.2
+        const aim = angleToShip+aimError;
+        const angleDeg = Phaser.Math.RadToDeg(angleToShip)
+        this.angle = angleDeg+90;
+        if (this.timeSinceShot <= 2) {
+            if (this.scene.checkPlayerAlive()) {
+                const offsetX = Math.cos(aim) * 1050;
+                const offsetY = Math.sin(aim) * 1050;
+                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, aim);
+            }
+        }
+        if (this.timeSinceShot <= 0) {
+            this.timeSinceShot = this.gunDelay;
+            this.scene.enemyBeamLaser.stopFiring();
+        }
+        this.checkMovement();
+        this.checkHealth();
     }
 }
 
@@ -184,7 +223,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
-        this.postFX.addBloom(0x9a9aff, 1.2, 1.2, 2, 2);
+        this.postFX.addBloom(0x9a9aff, 2, 2, 2, 4);
         this.enemy;
         this.isFiring = false;
     }
@@ -192,17 +231,17 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     fire(x, y, alpha) {
         if (!this.isFiring) {
             this.isFiring = true;
-            const offsetX = Math.cos(alpha) * 1090;
-            const offsetY = Math.sin(alpha) * 1090;
-            this.body.reset(x + offsetX, y + offsetY);
+            //const offsetX = Math.cos(alpha) * 1090;
+            //const offsetY = Math.sin(alpha) * 1090;
+            this.body.reset(x, y);
             this.setActive(true);
             this.setVisible(true);
             this.setDepth(1);
             this.angle = Phaser.Math.RadToDeg(alpha);
         } else {
-            const offsetX = Math.cos(alpha) * 1090;
-            const offsetY = Math.sin(alpha) * 1090;
-            this.body.reset(x + offsetX, y + offsetY);
+            //const offsetX = Math.cos(alpha) * 1090;
+            //const offsetY = Math.sin(alpha) * 1090;
+            this.body.reset(x, y);
             this.angle = Phaser.Math.RadToDeg(alpha);
         }
     }
@@ -218,6 +257,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
+        this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
     }
 
     iterateOverEnemyTypeGroup(group) {
@@ -231,6 +271,11 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
 
     laserHitsEnemy() {
         this.enemy.health -= this.ship.bulletDamage * 0.08;
+    }
+    laserHitsShip() {
+        if (!this.ship.invincible) {
+            this.ship.health -= 1; // reference enemy damage somehow
+        }
     }
 }
 
@@ -770,6 +815,7 @@ export class PlayScene extends Phaser.Scene{
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
+        this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
         this.bomb = new Bomb(this, 0, 0, 'bomb');
         this.enemyGroup = new EnemyGroup(this, 'enemy', Enemy);
         this.orangeEnemyGroup = new EnemyGroup(this, 'orangeEnemy', OrangeEnemy);
@@ -839,7 +885,9 @@ export class PlayScene extends Phaser.Scene{
 
             //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
             if (this.keyE.isDown) {
-                this.beamLaser.fire(this.ship.x, this.ship.y, shipAngleRad);
+                const offsetX = Math.cos(shipAngleRad) * 1100;
+                const offsetY = Math.sin(shipAngleRad) * 1100;
+                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad);
             }
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
                 console.log("E released")
@@ -887,7 +935,7 @@ export class PlayScene extends Phaser.Scene{
                         if (randomEnemy < 0.4) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.8) {
-                            this.spawnEnemySomewhere(this.orangeEnemyGroup);
+                            this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.blueEnemyGroup);
                         }
