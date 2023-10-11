@@ -70,17 +70,43 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     checkHealth() {
         if (this.health <= 0) {
+            this.displayDeathParticles();
             this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
             this.scene.enemyExplosion.play();
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
             this.healthText.setVisible(false);
+            
+            
             //this.setActive(false);
         } else {
             this.healthText.setPosition(this.x - 20, this.y - 50);
             this.healthText.setText(`${this.health}`)
         }
+    }
+
+    displayDeathParticles() {
+        //if (this.flame === undefined) {
+            this.flame = this.scene.add.particles(this.x, this.y, 'deathFireParticle',
+                {
+                    frame: 'white',
+                    color: [0xfcf9f2, 0xf89800, 0xfaf3e8, 0x9f0404],
+                    colorEase: 'quad.out',
+                    lifespan: 100,
+                    scale: { start: 2.5, end: 0, ease: 'sine.out' },
+                    speed: 100,
+                    advance: 300,
+                    frequency: 30,
+                    blendMode: 'ADD',
+                    duration: 200,
+                });
+                this.flame.setDepth(1);
+                this.flame.postFX.addBloom(0xfcf9f2, 2, 2, 2, 1);
+            this.flame.once("complete", () => {
+                this.flame.destroy();
+            })
+        //}
     }
     shootLaser(angleToShip) {
         const laserSpawnDistance = 70;
@@ -155,6 +181,7 @@ class BlueEnemy extends Enemy {
         this.timeSinceShot = 4;
         this.gunDelay = 6;
         this.recharge = 0.01;
+        this.aimAngle = 0;
 
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
@@ -170,15 +197,14 @@ class BlueEnemy extends Enemy {
     preUpdate() {
         this.timeSinceShot -= this.recharge;
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
-        const aimError = (Math.random()*0.4)-0.2
-        const aim = angleToShip+aimError;
-        const angleDeg = Phaser.Math.RadToDeg(angleToShip)
-        this.angle = angleDeg+90;
+        this.angle = Phaser.Math.RadToDeg(this.aimAngle)+90;
+        const rotationSpeed = 0.01;
+        this.aimAngle += Phaser.Math.Angle.Wrap(angleToShip - this.aimAngle) * rotationSpeed;
         if (this.timeSinceShot <= 2) {
             if (this.scene.checkPlayerAlive()) {
-                const offsetX = Math.cos(aim) * 1050;
-                const offsetY = Math.sin(aim) * 1050;
-                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, aim);
+                const offsetX = Math.cos(this.aimAngle) * 1050;
+                const offsetY = Math.sin(this.aimAngle) * 1050;
+                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle);
             }
         }
         if (this.timeSinceShot <= 0) {
@@ -187,6 +213,9 @@ class BlueEnemy extends Enemy {
         }
         this.checkMovement();
         this.checkHealth();
+        if (this.health <= 0) {
+            this.scene.enemyBeamLaser.stopFiring();
+        }
     }
 }
 
@@ -255,12 +284,10 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
+        this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
-        if (this.canDamagePlayer) {
-            this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
-        }   
     }
 
     iterateOverEnemyTypeGroup(group) {
@@ -276,7 +303,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.enemy.health -= this.ship.bulletDamage * 0.08;
     }
     laserHitsShip() {
-        if (!this.ship.invincible) {
+        if (this.canDamagePlayer && !this.ship.invincible) {
             this.ship.health -= 1; // reference enemy damage somehow
         }
     }
@@ -641,7 +668,7 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(true);
         this.setDepth(1);
         this.body.setDrag(this.dragValue, this.dragValue)
-        const endScale = 1.3;
+        const endScale = 1.5;
         const duration = 2000;
         this.scene.tweens.add({
             targets: this,
@@ -756,6 +783,7 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 70,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
+        this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
         this.load.image('shop', "../../assets/images/shop.png");
@@ -846,7 +874,7 @@ export class PlayScene extends Phaser.Scene{
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
         this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(1);
-        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
+        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.875, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
         this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true);
         this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true);
