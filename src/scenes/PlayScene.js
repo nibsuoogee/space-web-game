@@ -1040,6 +1040,7 @@ export class PlayScene extends Phaser.Scene{
         
     }
 
+    //delete shop buttons after leave shop has been pressed
     slideOutTweenButtons(button1, button2, button3, button4, button5, button6, button7, shopwindow) {
         const duration = 2000;
         const targets = [button1, button2, button3, button4, button5, button6, button7, shopwindow];
