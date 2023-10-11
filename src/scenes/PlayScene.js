@@ -215,7 +215,7 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
 }
 
 class BeamLaser extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, sprite) {
+    constructor(scene, x, y, sprite, canDamagePlayer) {
         super(scene, x, y, sprite);
         scene.add.existing(this);
         scene.physics.world.enable(this);
@@ -223,6 +223,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
+        this.canDamagePlayer = canDamagePlayer;
         this.postFX.addBloom(0x9a9aff, 2, 2, 2, 4);
         this.enemy;
         this.isFiring = false;
@@ -257,7 +258,9 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
-        this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
+        if (this.canDamagePlayer) {
+            this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
+        }   
     }
 
     iterateOverEnemyTypeGroup(group) {
@@ -774,6 +777,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
         this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
         this.load.audio("thruster", "../../assets/sfx/player-ship-thruster.mp3");
+        this.load.audio("laser_beam_firing", "../../assets/sfx/laser-beam-firing.mp3");
+        this.load.audio("laser_beam_firing_end", "../../assets/sfx/laser-beam-firing-ending.mp3");
 
         
 
@@ -812,10 +817,12 @@ export class PlayScene extends Phaser.Scene{
         this.enemyExplosion = this.sound.add("enemy_explosion");
         this.dodgeSound = this.sound.add("dodge_sound");
         this.thruster = this.sound.add("thruster", {volume: 0.3});
+        this.laserBeamFiring = this.sound.add("laser_beam_firing", {volume: 1});
+        this.laserBeamFiringEnding = this.sound.add("laser_beam_firing_end", {volume: 1});
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
-        this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
-        this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
+        this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser', false);
+        this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaser', true);
         this.bomb = new Bomb(this, 0, 0, 'bomb');
         this.enemyGroup = new EnemyGroup(this, 'enemy', Enemy);
         this.orangeEnemyGroup = new EnemyGroup(this, 'orangeEnemy', OrangeEnemy);
@@ -888,10 +895,15 @@ export class PlayScene extends Phaser.Scene{
                 const offsetX = Math.cos(shipAngleRad) * 1100;
                 const offsetY = Math.sin(shipAngleRad) * 1100;
                 this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad);
+                if (!this.laserBeamFiring.isPlaying) {
+                    this.laserBeamFiring.play();
+                }
             }
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
                 console.log("E released")
                 this.beamLaser.stopFiring();
+                this.laserBeamFiring.stop();
+                this.laserBeamFiringEnding.play();
             }
             if (this.keyShift.isDown) {
                 if (this.ship.dodgeReady) {
@@ -934,11 +946,11 @@ export class PlayScene extends Phaser.Scene{
                         const randomEnemy = Math.random();
                         if (randomEnemy < 0.4) {
                             this.spawnEnemySomewhere(this.enemyGroup);
-                        } else if (randomEnemy < 0.8) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
+                        } else if (randomEnemy < 0.7) {
+                            this.spawnEnemySomewhere(this.orangeEnemyGroup);
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        }
+                        } 
                     },
                     callbackScope: this,
                     loop: true,
