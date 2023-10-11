@@ -18,6 +18,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.flySpeed = 500;
         this.bulletDamage = 10;
 
+        this.dragValue = 300;
         this.movementDelay = 2;
         this.moveForTime = 1500
         this.timeSinceMovement = 0.5;
@@ -31,6 +32,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
+        this.body.setDrag(this.dragValue, this.dragValue)
         this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true);
         this.healthText.setTint(0xff0000);
     }
@@ -48,7 +50,8 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             }
         }
         if (this.health <= 0) {
-            this.scene.playerDestruction.play();
+            this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
+            this.scene.enemyExplosion.play();
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
@@ -90,9 +93,9 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             }
         } else {
             this.setAccelerationX(0);
-            this.setVelocityX(0);
+            //this.setVelocityX(0);
             this.setAccelerationY(0);
-            this.setVelocityY(0);
+            //this.setVelocityY(0);
         }
     }
     
@@ -184,9 +187,10 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.scene = scene;
         this.ship = scene.ship;
         this.projectileSpeed = 900;
+        this.dragValue = 1000;
         this.hasHit = false;
         this.enemy;
-        this.lockedOnEnemy = undefined;
+        this.lockedOnEnemy = undefined;;
 
         this.anims.create({
             key: 'rocketAnimation',
@@ -206,6 +210,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.setActive(true);
         this.setVisible(true);
         this.setDepth(1);
+        this.body.setDrag(this.dragValue, this.dragValue)
         //this.setVelocity(this.projectileSpeed * Math.cos(alpha), this.projectileSpeed * Math.sin(alpha))
         this.angle = Phaser.Math.RadToDeg(alpha);
         this.play('rocketAnimation');
@@ -216,13 +221,14 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         if (!this.hasHit) {
             this.scene.enemyGroup.children.iterate((enemy) => {
                 this.enemy = enemy;
-                // enemy damage stored separately, so it can be referenced after enemy death
                 if (enemy.active) {
                     if (this.lockedOnEnemy == undefined) {
                         this.lockedOnEnemy = enemy;
-                        console.log("New lock!")
                     }
                     this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
+                    if (this.lockedOnEnemy) {
+                        this.homeToEnemy();
+                    }
                 }
             })
         }
@@ -230,18 +236,17 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
             this.setActive(false);
             this.setVisible(false);
         }
-        if (this.lockedOnEnemy) {
-            this.homeToEnemy();
-        }
     }
     homeToEnemy() {
+        const distToEnemy = Phaser.Math.Distance.BetweenPoints(this, this.lockedOnEnemy);
         const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.lockedOnEnemy);
-        const angle = Phaser.Math.RadToDeg(angleToEnemy);
-        //this.setVelocity(this.projectileSpeed * Math.cos(angle), this.projectileSpeed * Math.sin(angle))
-        this.angle = angle;
-        this.setAccelerationX(this.projectileSpeed * Math.cos(angle))
-        this.setAccelerationY(this.projectileSpeed * Math.sin(angle))
-
+        const angle = angleToEnemy//Phaser.Math.RadToDeg(angleToEnemy);
+        this.angle = Phaser.Math.RadToDeg(angleToEnemy);
+        if (distToEnemy > 0) {
+            this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 50) * Math.cos(angle))
+            this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 50) * Math.sin(angle))
+        }
+        
     }
     laserHitsEnemy() {
         this.setVisible(false);
@@ -257,11 +262,12 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.world.enable(this); //off so that lasers don't collide and transfer kinetic energy
         this.setActive(true);
-        this.setVisible(true);
+        this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
         this.enemy;
 
+        this.pullEnemies = false;
         this.bombFuse = 1000;
         this.blackHoleDuration = 2000;
         this.explosionDuration = 133;
@@ -307,6 +313,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.recharge = this.maxRecharge;
             this.body.reset(x,y);
             this.setScale(5,5)
+            this.body.setSize(10,10, 5)
             this.setActive(true);
             this.setVisible(true);
             this.setDepth(5);
@@ -327,7 +334,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     activateBlackHole() {
         this.anims.stop('BombAnimation');
         this.play('BlackHoleAnimation');
-        this.explosionActive = true;
+        //this.explosionActive = true;
+        this.pullEnemies = true;
         this.scene.time.addEvent({
             delay: this.blackHoleDuration,
             callback: () => {
@@ -355,32 +363,52 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     deactivateExplosion() {
         this.anims.stop('BlackHoleExplosionAnimation');
         this.explosionActive = false;
+        this.pullEnemies = false;
         //this.setActive(true);
-        //this.setVisible(true);
+        this.scene.displayTintOverlay('0xffffff');
+        this.setVisible(false);
     }
 
     preUpdate(time, delta) {
         this.recharge -= 0.05;
         super.preUpdate(time, delta);
-        if (this.explosionActive) {
-            this.scene.enemyGroup.children.iterate((enemy) => {
-                this.enemy = enemy;
-                if (enemy.active) {
-                    this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
+        this.scene.enemyGroup.children.iterate((enemy) => {
+            this.enemy = enemy;
+            if (enemy.active) {
+                const distToEnemy = Phaser.Math.Distance.BetweenPoints(this, enemy);
+                if (this.pullEnemies) {
+                    const angleToBomb = Phaser.Math.Angle.BetweenPoints(enemy, this);
+                    const angle = Phaser.Math.RadToDeg(angleToBomb);
+                    if (distToEnemy > 0) {
+                        enemy.setVelocityX(1/distToEnemy * 50000 * Math.cos(angle))
+                        enemy.setVelocityY(1/distToEnemy * 50000 * Math.sin(angle))
+                    }
                 }
-            })
-            this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
+                if (this.explosionActive) {
+                    if (distToEnemy < 500) {
+                        this.hitsEnemy();
+                    }
+                    //this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
+                }
+            }
+        })
+        if (this.explosionActive) {
+            //console.log("Distance:")
+            const distToShip = Phaser.Math.Distance.BetweenPoints(this, this.ship);
+            if (distToShip < 500) {
+                this.hitsShip();
+            }
+            //this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
         }
     }
 
     hitsShip() {
         //this.scene.laserDamage.play();
-        this.ship.health -= 3//this.ship.bulletDamage / 10;
-        console.log("hitting ship")
+        this.ship.health -= 10//this.ship.bulletDamage / 10;
     }
 
     hitsEnemy() {
-        this.enemy.health -= 3//this.ship.bulletDamage / 10;
+        this.enemy.health -= 10//this.ship.bulletDamage / 10;
     }
 }
 
@@ -432,11 +460,13 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     }
 
     laserHitsShip() {
-        this.setVisible(false);
-        this.laserHasHit = true;
-        this.scene.laserDamage.play();
-        this.ship.health -= this.enemyBulletDamage;
-        this.scene.displayDamageOverlay();
+        if (!this.ship.invincible) {
+            this.setVisible(false);
+            this.laserHasHit = true;
+            this.scene.laserDamage.play();
+            this.ship.health -= this.enemyBulletDamage;
+            this.scene.displayTintOverlay('0xff0000');
+        }
     }
 
     laserHitsEnemy() {
@@ -469,6 +499,62 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
     }
 }
 
+class Scrap extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
+        // kinetic damage could be fun for certain weapon types (rocket?)
+        this.scene = scene;
+        this.ship = scene.ship;
+        this.postFX.addBloom(0xffff88, 1, 1, 1.5, 0.5);
+        this.scrapValue = 25;
+        this.dragValue = 300;
+    }
+
+    fire(x, y, alpha) {
+        this.body.reset(x,y);
+        this.setActive(true);
+        this.setVisible(true);
+        this.setDepth(1);
+        this.body.setDrag(this.dragValue, this.dragValue)
+        const endScale = 1.3;
+        const duration = 2000;
+        this.scene.tweens.add({
+            targets: this,
+            scaleX: endScale,
+            scaleY: endScale,
+            duration: duration,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        this.homeToPlayer();
+    }
+
+    homeToPlayer() {
+        const distToShip = Phaser.Math.Distance.BetweenPoints(this, this.ship);
+        const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
+        const angle = angleToShip//Phaser.Math.RadToDeg(angleToEnemy);
+        if (distToShip > 0 && distToShip < 300) {
+            this.setVelocityX((30000/distToShip) * Math.cos(angle))
+            this.setVelocityY((30000/distToShip) * Math.sin(angle))
+        }   
+        if (distToShip < 20) {
+            this.AbsorbIntoPlayer();
+        }
+    }
+
+    AbsorbIntoPlayer() {
+        this.scene.addPlayersScrap(this.scrapValue);
+        this.setActive(false);
+        this.setVisible(false);
+    }
+}
+
 class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'ship');
@@ -489,11 +575,18 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.points = 0;
+        this.scrap = 0;
         this.energy = 100;
         this.energyGeneration = 10;
         this.energyUsage = 1;
-
+        this.dodgeDelay = 3000;
+        this.dodgeReady = true;
+        this.invincible = false;
     }
+
+    setInvincible(active) {
+        this.invincible = active;
+    } 
 }
 
 export class PlayScene extends Phaser.Scene{
@@ -537,6 +630,7 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
+        this.load.image('scrap', "../../assets/images/scrap-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
         this.load.image('shop', "../../assets/images/shop.png");
@@ -554,6 +648,13 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
         this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
         this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
+        this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
+        this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
+        this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
+        this.load.audio("thruster", "../../assets/sfx/player-ship-thruster.mp3");
+
+        
+
         
     }
     create() {
@@ -580,18 +681,22 @@ export class PlayScene extends Phaser.Scene{
 
         this.zapGun1 = this.sound.add("zap_gun_1")
         this.laserDamage = this.sound.add("laser_damage")
-        this.playerDestruction = this.sound.add("player_destruction")
         this.shopZap = this.sound.add("shop_zap")
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.repairHammer = this.sound.add("repair_hammering");
         this.repairDrill = this.sound.add("repair_drill");
         this.rocketWeapon = this.sound.add("rocket_weapon");
+        this.scrapSound = this.sound.add("scrap_pick_up");
+        this.enemyExplosion = this.sound.add("enemy_explosion");
+        this.dodgeSound = this.sound.add("dodge_sound");
+        this.thruster = this.sound.add("thruster", {volume: 0.3});
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser');
         this.bomb = new Bomb(this, 0, 0, 'bomb');
         this.enemyGroup = new EnemyGroup(this)
         this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
+        this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap)
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -603,13 +708,11 @@ export class PlayScene extends Phaser.Scene{
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
 
-        //this.gunReadyText = this.add.text(this.game.renderer.width / 50, this.game.renderer.height * 0.90, 'GUN READY', { fontFamily: 'Cambria math' }).setFontSize(18);
-        //this.gunReadyTimeText = this.add.text(this.game.renderer.width / 40, this.game.renderer.height * 0.95, '', { fontFamily: 'Cambria math' }).setFontSize(18);
-
-        //this.healthPercent = this.add.text(50, -50, '', { fontFamily: 'Cambria math' }).setFontSize(18);
-        //this.bitmapText = this.add.bitmapText(0, 0, 'arcade', 16.34);
         this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
-        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -150, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
+        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
+        this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(1);
         this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.95, 'atari-classic', 'Tooltip', 20).setVisible(false);
 
         this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true);
@@ -641,6 +744,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
+        this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
 
         this.addEvents();
@@ -661,6 +765,12 @@ export class PlayScene extends Phaser.Scene{
                 console.log("E released")
                 this.beamLaser.stopFiring();
             }
+            if (this.keyShift.isDown) {
+                if (this.ship.dodgeReady) {
+                    this.ship.dodgeReady = false;
+                    this.dodgeRoll();
+                }
+            }
 
             if (this.timeTillGunReady <= 0) {
                 //this.gunReadyText.setVisible(1);
@@ -669,14 +779,14 @@ export class PlayScene extends Phaser.Scene{
                     //this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
                     this.shootWeaponByGroup(this.laserGroupBlue);
+                    //this.shootWeaponByGroup(this.scrapGroup);
                 }
-                if (this.keyShift.isDown) {
+                if (this.keyR.isDown) {
                     this.rocketWeapon.play();
                     this.timeTillGunReady = this.shootDelay;
                     this.shootWeaponByGroup(this.rocketGroup);
                 }
                 if (this.keyF.isDown) {
-                    console.log("F pressed")
                     this.timeTillGunReady = this.shootDelay;
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
                 }
@@ -758,6 +868,9 @@ export class PlayScene extends Phaser.Scene{
     playerMove() {
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             this.ship.anims.play('thrustersOn', true);
+            if (!this.thruster.isPlaying) {
+                this.thruster.play();
+            }
             if (this.keyW.isDown) {
                 //this.moveShipY(this.ship, -this.ship.flySpeed)
                 this.ship.setVelocityY(-this.ship.flySpeed)
@@ -776,6 +889,9 @@ export class PlayScene extends Phaser.Scene{
             } 
         } else {
             this.ship.anims.play('still', true);
+            if (this.thruster.isPlaying) {
+                this.thruster.stop();
+            }
             //this.ship.setVelocityX(0);
             //this.ship.setVelocityY(0);            
         }
@@ -786,21 +902,20 @@ export class PlayScene extends Phaser.Scene{
         background.tilePositionX += speed;
     }
 
-    displayDamageOverlay() {
+    displayTintOverlay(colour) {
         this.damageOverlay.setVisible(1);
-        this.damageOverlay.setAlpha(0); // Initially transparent
-        this.damageOverlay.setDepth(9999); // Make sure it's on top of everything
-        const duration = 200; // 1 second (adjust as needed)
-        // Create a tween to fade in and out the overlay
+        this.damageOverlay.setFillStyle(colour, 1);
+        this.damageOverlay.setAlpha(0);
+        this.damageOverlay.setDepth(9999);
+        const duration = 200;
         this.tweens.add({
             targets: this.damageOverlay,
-            alpha: 0.5, // Set the desired tint opacity (adjust as needed)
-            duration: duration / 2, // Fade in for half of the duration
-            yoyo: true, // Yoyo to fade out
-            repeat: 0, // Repeat once to fade out after fading in
+            alpha: 0.5,
+            duration: duration / 2,
+            yoyo: true,
+            repeat: 0,
             onComplete: () => {
-                // Callback function when the tween is complete
-                this.damageOverlay.setVisible(0); // Remove the overlay after the animation
+                this.damageOverlay.setVisible(0);
             }
         });
     }
@@ -822,8 +937,13 @@ export class PlayScene extends Phaser.Scene{
         this.scoreCounter.setText(`${this.ship.points} pts`);
     }
 
+    addPlayersScrap(scrap) {
+        this.ship.scrap += scrap;
+        this.scrapCounter.setText(`${this.ship.scrap}`);
+        this.scrapSound.play();
+    }
+
     playerDeath() {
-        this.playerDestruction.play();
         console.log("YOU DIED!");
         this.dropLoop.stop();
     }
@@ -864,6 +984,38 @@ export class PlayScene extends Phaser.Scene{
 
     moveShipX(ship, shipMoveSpeed) {
         ship.x += shipMoveSpeed;
+    }
+
+    dodgeRoll() {
+        this.dodgeSound.play();
+        this.ship.setInvincible(true); 
+        this.time.addEvent({
+            delay: this.ship.dodgeDelay,
+            callback: () => {
+            this.ship.dodgeReady = true;
+            },
+            callbackScope: this,
+            loop: false,
+        });
+
+        const angle = Phaser.Math.DegToRad(this.ship.angle);
+        const XtoWarpTo = this.ship.x + 300*Math.cos(angle);
+        const YtoWarpTo = this.ship.y + 300*Math.sin(angle);
+        this.ship.body.reset(XtoWarpTo, YtoWarpTo)
+
+        this.ship.setTint('0x0000ff');
+        const duration = 1500;
+        this.tweens.add({
+            targets: this.ship,
+            alpha: 0.5,
+            duration: duration / 4,
+            yoyo: true,
+            repeat: 0,
+            onComplete: () => {
+                this.ship.clearTint();
+                this.ship.setInvincible(false); 
+            }
+        });
     }
 
     displayTooltip(tooltipText, active) {
