@@ -824,6 +824,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         this.ship = scene.ship;
         this.kineticDamage = 20;
         this.body.setMass(20)
+        this.postFX.addBloom(0xffffff, 1, 1, 1, 1);
     }
 
     fire(x, y, alpha) {
@@ -832,6 +833,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         this.setActive(true);
         this.setVisible(true);
         this.setDepth(1);
+        this.hasHitShip = false;
         this.setVelocity(-100 + Math.random()*50, Math.random()*20)
         this.rotationSpeed = Math.random()*0.4-0.2;
     }
@@ -839,7 +841,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         this.angle += this.rotationSpeed
-        this.scene.physics.world.collide(this, this.ship, this.HitsShip, null, this);
+        this.scene.physics.world.overlap(this, this.ship, this.HitsShip, null, this);
         if (this.x <= 0 || this.x >= this.scene.game.renderer.width*1.5 || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
             this.setActive(false);
             this.setVisible(false);
@@ -848,7 +850,22 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
     }
 
     HitsShip() {
-        if (!this.ship.invincible) {
+        if (!this.ship.invincible && !this.hasHitShip) {
+            this.hasHitShip = true;
+            this.ship.immobilised = true;
+            const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
+            const bounceAngle = Phaser.Math.RadToDeg(angleToShip)
+            this.ship.setVelocity(Math.cos(bounceAngle) * 1000, Math.sin(bounceAngle) * 1000);
+            this.scene.time.addEvent({
+                delay: 300,
+                callback: () => {
+                    this.ship.immobilised = false;
+                    this.hasHitShip = false;
+                },
+                callbackScope: this,
+                loop: false,
+            });
+
             this.scene.laserDamage.play();
             this.ship.health -= this.kineticDamage;
             this.scene.displayTintOverlay('0xff0000');
@@ -885,6 +902,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.dodgeDelay = 3000;
         this.dodgeReady = true;
         this.invincible = false;
+        this.immobilised = false;
     }
 
     setInvincible(active) {
@@ -996,7 +1014,7 @@ export class PlayScene extends Phaser.Scene{
         });
 
         this.zapGun1 = this.sound.add("zap_gun_1")
-        this.laserDamage = this.sound.add("laser_damage")
+        this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
         this.shopZap = this.sound.add("shop_zap")
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
         this.repairHammer = this.sound.add("repair_hammering");
@@ -1205,22 +1223,22 @@ export class PlayScene extends Phaser.Scene{
             if (!this.thruster.isPlaying) {
                 this.thruster.play();
             }
-            if (this.keyW.isDown) {
-                //this.moveShipY(this.ship, -this.ship.flySpeed)
-                this.ship.setVelocityY(-this.ship.flySpeed)
-            } 
-            if (this.keyS.isDown) {
-                //this.moveShipY(this.ship, this.ship.flySpeed)
-                this.ship.setVelocityY(this.ship.flySpeed)
-            } 
-            if (this.keyA.isDown) {
-                //this.moveShipX(this.ship, -this.ship.flySpeed)
-                this.ship.setVelocityX(-this.ship.flySpeed)
-            } 
-            if (this.keyD.isDown) {
-                //this.moveShipX(this.ship, this.ship.flySpeed)
-                this.ship.setVelocityX(this.ship.flySpeed)
-            } 
+            if (!this.ship.immobilised) {
+                if (this.keyW.isDown) {
+                    this.ship.setVelocityY(-this.ship.flySpeed)
+                } 
+                if (this.keyS.isDown) {
+                    this.ship.setVelocityY(this.ship.flySpeed)
+                } 
+                if (this.keyA.isDown) {
+                    //this.moveShipX(this.ship, -this.ship.flySpeed)
+                    this.ship.setVelocityX(-this.ship.flySpeed)
+                } 
+                if (this.keyD.isDown) {
+                    //this.moveShipX(this.ship, this.ship.flySpeed)
+                    this.ship.setVelocityX(this.ship.flySpeed)
+                } 
+            }
         } else {
             this.ship.anims.play('still', true);
             if (this.thruster.isPlaying) {
@@ -1312,14 +1330,6 @@ export class PlayScene extends Phaser.Scene{
         const centerY = this.game.renderer.height / 2;
         this.ship = new Player(this, centerX, centerY);
         this.ship.setCollideWorldBounds(true);
-    }
-
-    moveShipY(ship, shipMoveSpeed) {
-        ship.y += shipMoveSpeed;
-    }
-
-    moveShipX(ship, shipMoveSpeed) {
-        ship.x += shipMoveSpeed;
     }
 
     dodgeRoll() {
