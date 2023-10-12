@@ -14,9 +14,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.fireRate = 0.016;
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
-        this.bulletSpeed = 1000;
+        
         this.flySpeed = 300;
-        this.bulletDamage = 10;
+        this.bulletDamage = 13;
+        this.bulletSpeed = 600;
 
         this.dragValue = 300;
         this.movementDelay = 2;
@@ -85,7 +86,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             //this.setActive(false);
         } else {
             this.healthText.setPosition(this.x - 20, this.y - 50);
-            this.healthText.setText(`${this.health}`)
+            this.healthText.setText(`${Math.round(this.health)}`)
         }
     }
 
@@ -115,7 +116,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         const laserSpawnDistance = 70;
         const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
         const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
-        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip, this);
     }
     setRandomDirectionVeloctiy(active) {
         if (active) {
@@ -153,9 +154,9 @@ class OrangeEnemy extends Enemy {
         this.fireRate = 0.016;
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
-        this.bulletSpeed = 1000;
         this.flySpeed = 600;
         this.bulletDamage = 10;
+        this.bulletSpeed = 500;
 
         this.dragValue = 300;
         this.movementDelay = 1;
@@ -167,9 +168,9 @@ class OrangeEnemy extends Enemy {
         const laserSpawnDistance = 70;
         const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
         const yOffset = Math.sin(angleToShip) * laserSpawnDistance;
-        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip+(2*Math.PI/20));
-        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip);
-        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip-(2*Math.PI/20));
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip+(2*Math.PI/20), this);
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip, this);
+        this.scene.laserGroupRed.fireLaser(this.x + xOffset, this.y + yOffset, angleToShip-(2*Math.PI/20), this);
     }
 }
 
@@ -188,9 +189,9 @@ class BlueEnemy extends Enemy {
 
         this.lastFired = 0;
         this.hullCollisionDamage = 50;
-        this.bulletSpeed = 1000;
         this.flySpeed = 300;
         this.bulletDamage = 10;
+        this.bulletSpeed = 1000;
 
         this.dragValue = 300;
         this.movementDelay = 2;
@@ -207,7 +208,7 @@ class BlueEnemy extends Enemy {
             if (this.scene.checkPlayerAlive()) {
                 const offsetX = Math.cos(this.aimAngle) * 1050;
                 const offsetY = Math.sin(this.aimAngle) * 1050;
-                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle);
+                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle, this);
             }
         }
         if (this.timeSinceShot <= 0) {
@@ -293,7 +294,7 @@ class RainbowEnemy extends Enemy {
             this.healthText.setVisible(false);
         } else {
             this.healthText.setPosition(this.x - 20, this.y - 50);
-            this.healthText.setText(`${this.health}`)
+            this.healthText.setText(`${Math.round(this.health)}`)
         }
     }
 }
@@ -333,6 +334,8 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.ship = scene.ship;
         this.canDamagePlayer = canDamagePlayer;
         this.enemy;
+        this.bulletDamage;
+
         this.isFiring = false;
         this.hasHitLastSecond = false;
         this.postFX.addBloom(0xffffff, 1, 1, 2, 2, 8);
@@ -350,13 +353,14 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         });  
     }
 
-    fire(x, y, alpha) {
+    fire(x, y, alpha, shooter) {
         if (!this.isFiring) {
             this.isFiring = true;
             this.body.reset(x, y);
             this.setActive(true);
             this.setVisible(true);
             this.setDepth(1);
+            this.bulletDamage = shooter.bulletDamage;
             this.angle = Phaser.Math.RadToDeg(alpha);
         } else {
             this.body.reset(x, y);
@@ -393,11 +397,11 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
 
     laserHitsEnemy() {
-        this.enemy.health -= this.ship.bulletDamage * 0.08;
+        this.enemy.health -= this.bulletDamage/500;
     }
     laserHitsShip() {
         if (this.canDamagePlayer && !this.ship.invincible) {
-            this.ship.health -= 1; // reference enemy damage somehow
+            this.ship.health -= this.bulletDamage /500;
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
             }
@@ -410,7 +414,6 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, sprite);
         scene.add.existing(this);
         //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
-        // kinetic damage could be fun for certain weapon types (rocket?)
         this.scene = scene;
         this.ship = scene.ship;
         this.projectileSpeed = 900;
@@ -438,7 +441,6 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(true);
         this.setDepth(1);
         this.body.setDrag(this.dragValue, this.dragValue)
-        //this.setVelocity(this.projectileSpeed * Math.cos(alpha), this.projectileSpeed * Math.sin(alpha))
         this.angle = Phaser.Math.RadToDeg(alpha);
         this.play('rocketAnimation');
     }
@@ -475,7 +477,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
     homeToEnemy() {
         const distToEnemy = Phaser.Math.Distance.BetweenPoints(this, this.lockedOnEnemy);
         const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.lockedOnEnemy);
-        const angle = angleToEnemy//Phaser.Math.RadToDeg(angleToEnemy);
+        const angle = angleToEnemy;
         this.angle = Phaser.Math.RadToDeg(angleToEnemy);
         if (distToEnemy > 0) {
             this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 50) * Math.cos(angle))
@@ -658,12 +660,11 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
 
     hitsShip() {
-        //this.scene.laserDamage.play();
-        this.ship.health -= 10//this.ship.bulletDamage / 10;
+        this.ship.health -= this.ship.bulletDamage /10
     }
 
     hitsEnemy() {
-        this.enemy.health -= 10//this.ship.bulletDamage / 10;
+        this.enemy.health -= this.ship.bulletDamage /10
     }
 }
 
@@ -673,23 +674,25 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, laserColour);
         scene.add.existing(this);
         //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
-        // kinetic damage could be fun for certain weapon types (rocket?)
         this.scene = scene;
         this.ship = scene.ship;
         this.postFX.addBloom(0xffffff, 1.5, 1.5, 2, 2);
-        this.laserSpeed = 900;
         this.laserHasHit = false;
         this.enemy;
         this.enemyBulletDamage;
+        this.bulletDamage;
+        this.bulletSpeed;
     }
 
-    fire(x, y, alpha) {
+    fire(x, y, alpha, shooter) {
         this.laserHasHit = false;
         this.body.reset(x,y);
         this.setActive(true);
         this.setVisible(true);
         this.setDepth(1);
-        this.setVelocity(this.laserSpeed * Math.cos(alpha), this.laserSpeed * Math.sin(alpha))
+        this.bulletDamage = shooter.bulletDamage;
+        this.bulletSpeed = shooter.bulletSpeed;
+        this.setVelocity(this.bulletSpeed * Math.cos(alpha), this.bulletSpeed * Math.sin(alpha))
         this.angle = Phaser.Math.RadToDeg(alpha);
     }
 
@@ -711,8 +714,6 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
             this.enemy = enemy;
-            // enemy damage stored separately, so it can be referenced after enemy death
-            this.enemyBulletDamage = enemy.bulletDamage; 
             if (enemy.active) {
                 this.scene.physics.world.overlap(this, enemy, this.laserHitsEnemy, null, this);
             }
@@ -724,7 +725,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
             this.setVisible(false);
             this.laserHasHit = true;
             this.scene.laserDamage.play();
-            this.ship.health -= this.enemyBulletDamage;
+            this.ship.health -= this.bulletDamage;
             this.scene.displayTintOverlay('0xff0000');
         }
     }
@@ -732,7 +733,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     laserHitsEnemy() {
         this.setVisible(false);
         this.laserHasHit = true;
-        this.enemy.health -= this.ship.bulletDamage;
+        this.enemy.health -= this.bulletDamage;
     }
 }
 
@@ -750,10 +751,10 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
         this.zapGunSound = weaponSound;
     }
 
-    fireLaser(x, y, alpha) {
+    fireLaser(x, y, alpha, shooter) {
         const laser = this.getFirstDead(false);
         if (laser) {
-            laser.fire(x, y, alpha)
+            laser.fire(x, y, alpha, shooter)
             //this.zapGunSound.play(); enemy laser sound
         }
     }
@@ -822,7 +823,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         scene.physics.world.enable(this);
         this.scene = scene;
         this.ship = scene.ship;
-        this.kineticDamage = 20;
+        this.kineticDamage = 50;
         this.body.setMass(20)
         this.postFX.addBloom(0xffffff, 1, 1, 1, 1);
     }
@@ -865,10 +866,14 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
                 callbackScope: this,
                 loop: false,
             });
-
-            this.scene.laserDamage.play();
-            this.ship.health -= this.kineticDamage;
-            this.scene.displayTintOverlay('0xff0000');
+            
+            const damage = this.kineticDamage - this.ship.hullCollisionDamage;
+            if (damage > 0) {
+                this.scene.laserDamage.play();
+                this.ship.health -= damage;
+                this.scene.displayTintOverlay('0xff0000');
+            }
+            
         }
     }
 }
@@ -887,13 +892,16 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.isShooting = false;
         this.shootFromFirstPosition = true;
 
-        this.fireRate = 250;
         this.lastFired = 0;
         this.health = 1000;
-        this.hullCollisionDamage = 50;
-        this.bulletSpeed = 1000;
         this.flySpeed = 400;
         this.bulletDamage = 50;
+        this.bulletSpeed = 900;
+        this.fireRate = 250;
+
+        this.hullCollisionDamage = 20;
+        this.hasHitEnemy = false;
+    
         this.points = 0;
         this.scrap = 0;
         this.energy = 100;
@@ -904,10 +912,45 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.invincible = false;
         this.immobilised = false;
     }
-
+    
     setInvincible(active) {
         this.invincible = active;
-    } 
+    }
+
+    preUpdate() {
+        this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
+        this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
+        this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
+        this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
+    }
+
+    iterateOverEnemyTypeGroup(group) {
+        group.children.iterate((enemy) => {
+            this.enemy = enemy;
+            if (enemy.active) {
+                this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
+            }
+        })
+    }
+
+    hitsEnemy() {
+        if (!this.hasHitEnemy) {
+            this.hasHitEnemy = true;
+            const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.enemy);
+            const bounceAngle = Phaser.Math.RadToDeg(angleToEnemy)
+            this.enemy.setVelocity(Math.cos(bounceAngle) * 500, Math.sin(bounceAngle) * 500);
+            this.scene.time.addEvent({
+                delay: 300,
+                callback: () => {
+                    this.hasHitEnemy = false;
+                },
+                callbackScope: this,
+                loop: false,
+            });
+            this.enemy.health -= this.hullCollisionDamage;
+        }
+        
+    }
 }
 
 export class PlayScene extends Phaser.Scene{
@@ -926,7 +969,6 @@ export class PlayScene extends Phaser.Scene{
     init(data) {
         console.log(data);
         this.backgroundSpeed = 3;
-        this.shootDelay = 0.5;
         this.timeTillGunReady = 2;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
     }
@@ -1013,7 +1055,7 @@ export class PlayScene extends Phaser.Scene{
             frameRate: 20,
         });
 
-        this.zapGun1 = this.sound.add("zap_gun_1")
+        this.zapGun1 = this.sound.add("zap_gun_1", {volume: 0.6})
         this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
         this.shopZap = this.sound.add("shop_zap")
         this.shopUpgradeMeaty = this.sound.add("shop_upgrade_meaty")
@@ -1109,7 +1151,7 @@ export class PlayScene extends Phaser.Scene{
             if (this.keyE.isDown) {
                 const offsetX = Math.cos(shipAngleRad) * 1080;
                 const offsetY = Math.sin(shipAngleRad) * 1080;
-                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad);
+                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
                 if (!this.laserBeamFiring.isPlaying) {
                     this.laserBeamFiring.play();
                 }
@@ -1132,17 +1174,17 @@ export class PlayScene extends Phaser.Scene{
                 if (this.keySpace.isDown) {
                     this.zapGun1.play();
                     //this.rocketWeapon.play();
-                    this.timeTillGunReady = this.shootDelay;
+                    this.timeTillGunReady = 125/this.ship.fireRate;
                     this.shootWeaponByGroup(this.laserGroupBlue);
                     //this.shootWeaponByGroup(this.scrapGroup);
                 }
                 if (this.keyR.isDown) {
                     this.rocketWeapon.play();
-                    this.timeTillGunReady = this.shootDelay;
+                    this.timeTillGunReady = 125/this.ship.fireRate;
                     this.shootWeaponByGroup(this.rocketGroup);
                 }
                 if (this.keyF.isDown) {
-                    this.timeTillGunReady = this.shootDelay;
+                    this.timeTillGunReady = 125/this.ship.fireRate;
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
                 }
             } else {
@@ -1273,7 +1315,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     checkPlayerAlive() {
-        this.healthPercent.setText(`${this.ship.health}%`);
+        this.healthPercent.setText(`${Math.round(this.ship.health)}%`);
         if (this.ship.health <= 0) {
             if (!this.playerDeathHasPlayed) {
                 this.playerDeath();
@@ -1312,7 +1354,7 @@ export class PlayScene extends Phaser.Scene{
         const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
-        weaponGroup.fireLaser(this.ship.x+ xOffset, this.ship.y + yOffset, shipAngleRad);
+        weaponGroup.fireLaser(this.ship.x+ xOffset, this.ship.y + yOffset, shipAngleRad, this.ship);
     }
 
     spawnEnemy() {
