@@ -557,7 +557,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.setDepth(5);
             this.setVelocity(velocityX, velocityY)
             this.body.setDrag(this.dragValue, this.dragValue)
-            this.scene.blackHoleBomb.play();
+
+            this.scene.blackHoleInterference.play();
             this.play('BombAnimation');
             this.scene.time.addEvent({
                 delay: this.bombFuse,
@@ -573,6 +574,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     activateBlackHole() {
         this.anims.stop('BombAnimation');
         this.play('BlackHoleAnimation');
+        this.scene.blackHoleInterference.stop();
+        this.scene.blackHoleBomb.play();
         //this.explosionActive = true;
         this.pullEnemies = true;
         this.scene.time.addEvent({
@@ -606,7 +609,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         //this.setActive(true);
         this.scene.displayTintOverlay('0xffffff');
         this.setVisible(false);
-        this.scene.blackHoleBomb.stop();
+        //this.scene.blackHoleBomb.stop();
     }
 
     preUpdate(time, delta) {
@@ -921,6 +924,7 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("player_eating_laser", "../../assets/sfx/player-eating-laser-beam.mp3");
         this.load.audio("player_eating_laser_end", "../../assets/sfx/player-eating-laser-beam-end.mp3");
         this.load.audio("digitalInterference", "../../assets/sfx/digital-interference.mp3");
+        this.load.audio("blackHoleImplosion", "../../assets/sfx/black-hole-implosion.mp3");
     }
     create() {
         this.addShip();
@@ -959,7 +963,8 @@ export class PlayScene extends Phaser.Scene{
         this.laserBeamFiringEnding = this.sound.add("laser_beam_firing_end", {volume: 1});
         this.playerEatinglaserBeam = this.sound.add("player_eating_laser", {volume: 1});
         this.playerEatingLaserBeamEnd = this.sound.add("player_eating_laser_end", {volume: 1});
-        this.blackHoleBomb = this.sound.add("digitalInterference", {volume: 1})
+        this.blackHoleInterference = this.sound.add("digitalInterference", {volume: 1})
+        this.blackHoleBomb = this.sound.add("blackHoleImplosion", {volume: 1})
 
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
