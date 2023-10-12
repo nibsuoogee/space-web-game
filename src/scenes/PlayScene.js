@@ -606,10 +606,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.anims.stop('BlackHoleExplosionAnimation');
         this.explosionActive = false;
         this.pullEnemies = false;
-        //this.setActive(true);
         this.scene.displayTintOverlay('0xffffff');
         this.setVisible(false);
-        //this.scene.blackHoleBomb.stop();
     }
 
     preUpdate(time, delta) {
@@ -619,13 +617,14 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
+
+        this.iterateOverEnemyTypeGroup(this.scene.scrapGroup);
+        this.iterateOverEnemyTypeGroup(this.scene.asteroidGroup);
         if (this.explosionActive) {
-            //console.log("Distance:")
             const distToShip = Phaser.Math.Distance.BetweenPoints(this, this.ship);
             if (distToShip < this.damageRadius) {
                 this.hitsShip();
             }
-            //this.scene.physics.world.overlap(this, this.ship, this.hitsShip, null, this);
         }
     }
 
@@ -644,9 +643,15 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                 }
                 if (this.explosionActive) {
                     if (distToEnemy < this.damageRadius) {
-                        this.hitsEnemy();
+                        if (enemy instanceof Asteroid) {
+                            enemy.setActive(false);
+                            enemy.setVisible(false);
+                        } else if (enemy instanceof Scrap) {
+                            enemy.setVelocity(0,0);
+                        } else {
+                            this.hitsEnemy();
+                        }
                     }
-                    //this.scene.physics.world.overlap(this, enemy, this.hitsEnemy, null, this);
                 }
             }
         })
@@ -700,7 +705,6 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         if (this.x <= 0 || this.x >= this.scene.game.renderer.width || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
             this.setActive(false);
             this.setVisible(false);
-            console.log("laser deleted!")
         }
     }
 
@@ -738,7 +742,7 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
 
         this.createMultiple({
             classType: weaponType,//Laser,
-            frameQuantity: 20,
+            frameQuantity: 30,
             active: false,
             visible: false,
             key: weaponSprite
@@ -811,6 +815,47 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
+class Asteroid extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        scene.physics.world.enable(this);
+        this.scene = scene;
+        this.ship = scene.ship;
+        this.kineticDamage = 20;
+        this.body.setMass(20)
+    }
+
+    fire(x, y, alpha) {
+        // spawn at at random y to right of screen
+        this.body.reset(this.scene.game.renderer.width*1.1, Math.random()*this.scene.game.renderer.height);
+        this.setActive(true);
+        this.setVisible(true);
+        this.setDepth(1);
+        this.setVelocity(-100 + Math.random()*50, Math.random()*20)
+        this.rotationSpeed = Math.random()*0.4-0.2;
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        this.angle += this.rotationSpeed
+        this.scene.physics.world.collide(this, this.ship, this.HitsShip, null, this);
+        if (this.x <= 0 || this.x >= this.scene.game.renderer.width*1.5 || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
+            this.setActive(false);
+            this.setVisible(false);
+            console.log("asteroid deleted!")
+        }
+    }
+
+    HitsShip() {
+        if (!this.ship.invincible) {
+            this.scene.laserDamage.play();
+            this.ship.health -= this.kineticDamage;
+            this.scene.displayTintOverlay('0xff0000');
+        }
+    }
+}
+
 class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'ship');
@@ -818,6 +863,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         scene.physics.world.enable(this);
         this.setDepth(2);
         this.setCollideWorldBounds(true);
+        this.body.setMass(10)
         this.dragValue = 800;
         this.body.setDrag(this.dragValue, this.dragValue)
 
@@ -896,6 +942,7 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 58,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
+        this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
         this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
@@ -967,6 +1014,7 @@ export class PlayScene extends Phaser.Scene{
         this.blackHoleBomb = this.sound.add("blackHoleImplosion", {volume: 1})
 
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
+        this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
         this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser', false);
         this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaserRed', true);
@@ -976,8 +1024,9 @@ export class PlayScene extends Phaser.Scene{
         this.blueEnemyGroup = new EnemyGroup(this, 'blueEnemy', BlueEnemy);
         this.rainbowEnemyGroup = new EnemyGroup(this, 'rainbowEnemy', RainbowEnemy);
 
-        this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
-        this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap)
+        this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap);
+        this.asteroidGroup = new WeaponGroup(this, 0, 'asteroid', Asteroid);
+
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -1092,6 +1141,7 @@ export class PlayScene extends Phaser.Scene{
                     delay: delay,
                     callback: () => {
                         const randomEnemy = Math.random();
+                        this.asteroidGroup.fireLaser();
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.6) {
