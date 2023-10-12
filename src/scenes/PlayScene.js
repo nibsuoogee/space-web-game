@@ -76,14 +76,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         if (this.health <= 0) {
             this.displayParticles('deathFireParticle');
             this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
-            this.scene.enemyExplosion.play();
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
             this.healthText.setVisible(false);
-            
-            
-            //this.setActive(false);
         } else {
             this.healthText.setPosition(this.x - 20, this.y - 50);
             this.healthText.setText(`${Math.round(this.health)}`)
@@ -287,7 +283,6 @@ class RainbowEnemy extends Enemy {
                 callbackScope: this,
                 repeat: 5,
             });
-            this.scene.enemyExplosion.play();
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
@@ -873,7 +868,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
                 this.ship.health -= damage;
                 this.scene.displayTintOverlay('0xff0000');
             }
-            
+            this.scene.hullCollision.play();
         }
     }
 }
@@ -948,6 +943,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 loop: false,
             });
             this.enemy.health -= this.hullCollisionDamage;
+            this.scene.hullCollision.play();
         }
         
     }
@@ -1063,7 +1059,7 @@ export class PlayScene extends Phaser.Scene{
         this.repairDrill = this.sound.add("repair_drill");
         this.rocketWeapon = this.sound.add("rocket_weapon");
         this.scrapSound = this.sound.add("scrap_pick_up");
-        this.enemyExplosion = this.sound.add("enemy_explosion");
+        this.hullCollision = this.sound.add("enemy_explosion");
         this.dodgeSound = this.sound.add("dodge_sound");
         this.thruster = this.sound.add("thruster", {volume: 0.3});
         this.laserBeamFiring = this.sound.add("laser_beam_firing", {volume: 1});
@@ -1145,8 +1141,6 @@ export class PlayScene extends Phaser.Scene{
         if (this.checkPlayerAlive()) {
             this.playerMove();
             const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
-            //this.checkCollisions();
-
             //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
             if (this.keyE.isDown) {
                 const offsetX = Math.cos(shipAngleRad) * 1080;
@@ -1173,10 +1167,8 @@ export class PlayScene extends Phaser.Scene{
                 //this.gunReadyText.setVisible(1);
                 if (this.keySpace.isDown) {
                     this.zapGun1.play();
-                    //this.rocketWeapon.play();
                     this.timeTillGunReady = 125/this.ship.fireRate;
                     this.shootWeaponByGroup(this.laserGroupBlue);
-                    //this.shootWeaponByGroup(this.scrapGroup);
                 }
                 if (this.keyR.isDown) {
                     this.rocketWeapon.play();
