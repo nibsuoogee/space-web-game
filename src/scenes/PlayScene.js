@@ -52,7 +52,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
                 this.timeSinceShot = this.gunDelay;
             }
         }
-        this.checkMovement();
+        //this.checkMovement();
         this.checkHealth();
     }
 
@@ -224,6 +224,7 @@ class RainbowEnemy extends Enemy {
         super(scene, x, y, 'rainbowEnemy');
         scene.add.existing(this);
         scene.physics.add.existing(this, 0);
+        this.postFX.addBloom(0xfcf9f2, 1, 1, 1.5, 1, 4);
 
         this.ship;
         this.scene = scene;
@@ -248,13 +249,14 @@ class RainbowEnemy extends Enemy {
                 start: 0,
                 end: 5,
             }),
-            frameRate: 10,
+            frameRate: 6,
             repeat: -1,
         });
 
     }
 
     spawn(x, y, ship) {
+        this.play('RainbowAnimation');
         this.scene.physics.world.enable(this);
         this.setCollideWorldBounds(true);
         this.ship = ship;
@@ -267,7 +269,6 @@ class RainbowEnemy extends Enemy {
         this.body.setDrag(this.dragValue, this.dragValue)
         this.healthText = this.scene.add.bitmapText(this.x, this.y + 50, 'atari-classic', 'HP', 12).setVisible(true).setDepth(2);
         this.healthText.setTint(0xff0000);
-        this.play('RainbowAnimation');
     }
 
     checkHealth() {
@@ -888,7 +889,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.shootFromFirstPosition = true;
 
         this.lastFired = 0;
-        this.health = 1000;
+        this.maxHealth = 1000;
+        this.health = 200;
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.bulletSpeed = 900;
@@ -993,9 +995,9 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
-        this.load.spritesheet('rainbowEnemy', 'assets/images/RainbowEnemySprite.png', {
-            frameWidth: 51,
-            frameHeight: 58,
+        this.load.spritesheet('rainbowEnemy', 'assets/images/change2.png', {
+            frameWidth: 52,
+            frameHeight: 59,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
         this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
@@ -1194,12 +1196,23 @@ export class PlayScene extends Phaser.Scene{
                     callback: () => {
                         const randomEnemy = Math.random();
                         this.asteroidGroup.fireLaser();
+                        /*
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.6) {
                             this.spawnEnemySomewhere(this.orangeEnemyGroup);
                         } else if (randomEnemy < 0.9) {
                             this.spawnEnemySomewhere(this.blueEnemyGroup);
+                        } else if (randomEnemy < 1) {
+                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                        } 
+*/
+                        if (randomEnemy < 0.3) {
+                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                        } else if (randomEnemy < 0.6) {
+                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                        } else if (randomEnemy < 0.9) {
+                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } 
@@ -1228,26 +1241,23 @@ export class PlayScene extends Phaser.Scene{
 
         // all the scrap floats fairly quickly to the player
 
-
-
-        const minAttributeValue = 0;  // Minimum attribute value
-        const maxAttributeValue = 3;  // Maximum attribute value (inclusive)
         
-        const minWeaponValue = 0;     // Minimum weapon value
-        const maxWeaponValue = 1;     // Maximum weapon value (inclusive)
-        
-        const selectedWeapons = [];
-        const selectedAttributes = [];
-        
-        for (let i = 0; i < 4; i++) {
-            const randomAttribute = Math.floor(Math.random() * (maxAttributeValue - minAttributeValue + 1)) + minAttributeValue;
-            selectedAttributes.push(randomAttribute);
+        var upgrades = [0,1,2,3],
+        selectedAttributes = [],
+        i = upgrades.length,
+        j = 0;
+    
+        while (i--) {
+            j = Math.floor(Math.random() * (i+1));
+            selectedAttributes.push(upgrades[j]);
+            upgrades.splice(j,1);
         }
+
+        var selectedWeapon = [];
+        const WeaponAmount = 1;
+        selectedWeapon.push(Math.floor(Math.random() * WeaponAmount));
         
-        const randomWeapon = Math.floor(Math.random() * (maxWeaponValue - minWeaponValue + 1)) + minWeaponValue;
-        selectedWeapons.push(randomWeapon);
-        
-        this.shopSlideIn(selectedAttributes, selectedWeapons);
+        this.shopSlideIn(selectedAttributes, selectedWeapon);
 
     }
 
@@ -1327,6 +1337,11 @@ export class PlayScene extends Phaser.Scene{
         this.ship.scrap += scrap;
         this.scrapCounter.setText(`${this.ship.scrap}`);
         this.scrapSound.play();
+    }
+
+    subtractPlayerScrap(cost){
+        this.ship.scrap -= cost;
+        this.scrapCounter.setText(`${this.ship.scrap}`);
     }
 
     playerDeath() {
@@ -1438,6 +1453,51 @@ export class PlayScene extends Phaser.Scene{
         this.hudFlySpeedStat.setText(`FS: ${this.ship.flySpeed}`);
     }
 
+    shopBuyItem(upgrade){
+        console.log(upgrade, "this is the upgrade")
+        if(upgrade == "EngineUpgrade"){
+            this.ship.flySpeed += 10;
+            this.subtractPlayerScrap(150);
+        }
+        else if(upgrade == "HealthUpgrade"){
+            this.ship.maxHealth += 10;
+            this.ship.health += 10;
+            this.subtractPlayerScrap(150);
+        }
+        else if(upgrade == "FireRateUpgrade"){
+            this.ship.fireRate += 10;
+            this.subtractPlayerScrap(150);
+        }
+        else if(upgrade == "DamageUpgrade"){
+            this.ship.bulletDamage += 10;
+            this.subtractPlayerScrap(150);
+        }
+
+        console.log(this.ship.flySpeed, "flyspeed");
+        console.log(this.ship.health, "health");
+        console.log(this.ship.fireRate, "fireRate");
+        console.log(this.ship.bulletDamage, "bulletDamage");
+
+
+    }
+
+    shopItemDescription(item){
+        if(item == "EngineUpgrade"){
+            return "Upgrades ship speed";
+        }
+        else if(item == "HealthUpgrade"){
+            return "Upgrades hull health";
+        }
+        else if(item == "FireRateUpgrade"){
+            return "Upgrades ship firerate";
+        }
+        else if(item == "DamageUpgrade"){
+            return "Upgrades ship laser damage";
+        }
+
+
+    }
+
     shopSlideIn(Attributes, Weapons){
         this.backgroundSpeed = 0.2;
         console.log(Attributes, Weapons)
@@ -1476,6 +1536,7 @@ export class PlayScene extends Phaser.Scene{
             ease: 'Power2', // Easing function
             paused: true, // Pause the tween initially
             onComplete: () => {
+
                 //Shop basics in place
                 var shopwindow = this.add.image(0,0, 'shopWindow').setOrigin(0,0);
                 var LeaveShopButton = this.add.image(136*scale,68*scale, 'LeaveShop').setOrigin(0).setInteractive();
@@ -1507,12 +1568,12 @@ export class PlayScene extends Phaser.Scene{
                 var shopContainer = this.add.container(32,70, [shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton], Phaser.Geom.Rectangle.Contains)
         
                 Upgrade_1_Button.on("pointerover", () => {
-                    this.displayTooltip("Increase ship health", true);
+                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[0]]), true);
                 });
                 Upgrade_1_Button.on('pointerup', function () {
+                    this.shopBuyItem(attributeAssets[Attributes[0]])
                     console.log(attributeAssets[Attributes[0]]);
                     this.shopUpgradeMeaty.play();
-                    this.ship.health += 10;
         
                 }, this);
                 Upgrade_1_Button.on("pointerout", () => {
@@ -1520,9 +1581,10 @@ export class PlayScene extends Phaser.Scene{
                 });
 
                 Upgrade_2_Button.on("pointerover", () => {
-                    this.displayTooltip("DO SOMETHING", true);
+                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[1]]), true);
                 });
                 Upgrade_2_Button.on('pointerup', function () {
+                    this.shopBuyItem(attributeAssets[Attributes[1]])
                     console.log(attributeAssets[Attributes[1]]);
                     this.shopUpgradeMeaty.play();
         
@@ -1532,9 +1594,10 @@ export class PlayScene extends Phaser.Scene{
                 });
 
                 Upgrade_3_Button.on("pointerover", () => {
-                    this.displayTooltip("DO SOMETHING", true);
+                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[2]]), true);
                 });
                 Upgrade_3_Button.on('pointerup', function () {
+                    this.shopBuyItem(attributeAssets[Attributes[2]])
                     console.log(attributeAssets[Attributes[2]]);
                     this.shopUpgradeMeaty.play();
         
@@ -1544,9 +1607,10 @@ export class PlayScene extends Phaser.Scene{
                 });
 
                 Upgrade_4_Button.on("pointerover", () => {
-                    this.displayTooltip("DO SOMETHING", true);
+                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[3]]), true);
                 });
                 Upgrade_4_Button.on('pointerup', function () {
+                    this.shopBuyItem(attributeAssets[Attributes[3]])
                     console.log(attributeAssets[Attributes[3]]);
                     this.shopUpgradeMeaty.play();
                 }, this);
@@ -1580,7 +1644,9 @@ export class PlayScene extends Phaser.Scene{
                     this.displayTooltip("Repair hull", true);
                 });
                 RepairShipButton.on('pointerup', function () {
-                    console.log("Reapairing");
+                    console.log("Repairing");
+                    this.subtractPlayerScrap((this.ship.maxHealth - this.ship.health) * 0.2);
+                    this.ship.health = this.ship.maxHealth;
                     this.repairHammer.play();
                     this.repairDrill.play();
                 }, this);
