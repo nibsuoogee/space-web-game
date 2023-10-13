@@ -506,10 +506,11 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.bombFuse = 1000;
         this.blackHoleDuration = 2000;
         this.explosionDuration = 133;
-        this.maxRecharge = 5;
-        this.recharge = 1;
+        this.maxRecharge = 10;
+        this.recharge = 2;
         this.explosionActive = false;
         this.dragValue = 350;
+
         this.anims.create({
             key: 'BombAnimation',
             frames: this.anims.generateFrameNumbers('bomb', {
@@ -539,6 +540,17 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             frameRate: 60,
             repeat: -1,
         });
+
+        this.bombIcon = this.scene.add.sprite(46, this.scene.game.renderer.height*0.78, 'BlackHole');
+        this.bombIcon.play('BlackHoleExplosionAnimation');
+        this.bombIcon.setFrame(36).setDepth(2);
+        this.scene.bombRechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
+        this.scene.bombRechargeBar.fillRect(40, this.scene.game.renderer.height*0.8, 10, 100);
+        this.scene.bombRechargeBarFill = this.scene.add.graphics();
+        this.scene.bombRechargeBarFill.fillStyle(0x4921ad);
+        this.scene.bombRechargeBarFill.setDepth(5);
+        this.scene.bombRechargeBarFill.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
+
     }
 
     fire(x, y, alpha, velocityX, velocityY) {
@@ -546,6 +558,9 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.hasHit = false;
             console.log("dropped a bomb");
             this.recharge = this.maxRecharge;
+            this.scene.bombRechargeBarFill.clear();
+            this.scene.bombRechargeBarFill.fillStyle(0x4921ad);
+
             this.body.reset(x,y);
             this.setScale(5,5)
             this.body.setSize(10,10, 5)
@@ -554,7 +569,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             this.setDepth(5);
             this.setVelocity(velocityX, velocityY)
             this.body.setDrag(this.dragValue, this.dragValue)
-
             this.scene.blackHoleInterference.play();
             this.play('BombAnimation');
             this.scene.time.addEvent({
@@ -608,7 +622,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
 
     preUpdate(time, delta) {
-        this.recharge -= 0.05;
+        this.recharge -= 0.005;
         super.preUpdate(time, delta);
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -623,8 +637,15 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                 this.hitsShip();
             }
         }
+        this.updateRechargeBar();
     }
-
+    updateRechargeBar() {
+        if (this.recharge >= 0) {
+            this.scene.displayTooltip(`${this.recharge}`, true);
+            const fillHeight = 100 * ((this.recharge-this.maxRecharge) / this.maxRecharge);
+            this.scene.bombRechargeBarFill.fillRect(40, this.scene.game.renderer.height*0.8+100, 10, fillHeight);
+        }
+    }
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
             this.enemy = enemy;
@@ -998,6 +1019,7 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 58,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
+        this.load.image('heart', "../../assets/images/heart.png");
         this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
         this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
@@ -1094,7 +1116,8 @@ export class PlayScene extends Phaser.Scene{
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
 
-        this.healthPercent = this.add.bitmapText(20, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
+        this.healthHeart = this.add.image(24, this.game.renderer.height * 0.962, "heart").setDepth(2);
+        this.healthPercent = this.add.bitmapText(40, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
 
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
