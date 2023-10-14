@@ -1287,6 +1287,7 @@ export class PlayScene extends Phaser.Scene{
         this.backgroundSpeed = 3;
         this.timeTillGunReady = 2;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
+        this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
     }
     preload() {
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
@@ -1353,6 +1354,9 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("player_eating_laser_end", "../../assets/sfx/player-eating-laser-beam-end.mp3");
         this.load.audio("digitalInterference", "../../assets/sfx/digital-interference.mp3");
         this.load.audio("blackHoleImplosion", "../../assets/sfx/black-hole-implosion.mp3");
+        this.load.audio("shop_intro", "../../assets/music/shop-theme-fratellis-cover-intro.mp3");
+        this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
+
     }
     create() {
         this.addShip();
@@ -1393,6 +1397,8 @@ export class PlayScene extends Phaser.Scene{
         this.playerEatingLaserBeamEnd = this.sound.add("player_eating_laser_end", {volume: 1});
         this.blackHoleInterference = this.sound.add("digitalInterference", {volume: 1})
         this.blackHoleBomb = this.sound.add("blackHoleImplosion", {volume: 1})
+        this.shopIntro = this.sound.add("shop_intro", {volume: 1})
+        this.shopLoop = this.sound.add("shop_loop", {volume: 1, loop: true})
 
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
@@ -1514,21 +1520,6 @@ export class PlayScene extends Phaser.Scene{
                 }   
             } else {
                 this.timeTillGunReady -= 0.016;
-            }
-
-            if (!this.timerStarted) {
-                this.timerStarted = true;
-                const ShopDelay = 2000;
-
-                this.time.addEvent({
-                    delay: ShopDelay,
-                    callback: () => {
-                        this.onTimerComplete();
-                    },
-                    callbackScope: this,
-                    loop: false,
-                });
-
             }
         };
     }
@@ -1829,6 +1820,12 @@ export class PlayScene extends Phaser.Scene{
 
     shopSlideIn(Attributes, Weapons){
         this.backgroundSpeed = 0.2;
+        this.dropLoop.stop();
+        this.shopIntro.play();
+        this.shopIntro.on('complete', () => {
+            this.shopLoop.play();
+        });
+        
         console.log(Attributes, Weapons)
 
         //Scale of icons and shop
@@ -2013,6 +2010,12 @@ export class PlayScene extends Phaser.Scene{
 
     shopSlideOut(image) {
         this.backgroundSpeed = 3;
+        this.shopLoop.stop();
+        this.buildupBar.play();
+        this.buildupBar.on('complete', () => {
+            this.dropLoop.play();
+        });
+
         this.slideOutTween = this.tweens.add({
             targets: image,
             x: -1000,

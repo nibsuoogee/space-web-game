@@ -60,9 +60,9 @@ export class MenuScene extends Phaser.Scene{
             menuLoop.stop();
             buildupBar.play();
             buildupBar.on("complete", () => {
-                //dropLoop.play();
+                dropLoop.play();
             })
-            this.data.set({"dropLoop": dropLoop});
+            this.data.set({"dropLoop": dropLoop, "buildupBar": buildupBar});
             this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
             //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
         });
