@@ -52,7 +52,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
                 this.timeSinceShot = this.gunDelay;
             }
         }
-        //this.checkMovement();
+        this.checkMovement();
         this.checkHealth();
     }
 
@@ -397,7 +397,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
     laserHitsShip() {
         if (this.canDamagePlayer && !this.ship.invincible) {
-            this.ship.health -= this.bulletDamage /500;
+            this.ship.setHealthDelta(-this.bulletDamage /500);
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
             }
@@ -507,8 +507,10 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.bombFuse = 1000;
         this.blackHoleDuration = 2000;
         this.explosionDuration = 133;
-        this.maxRecharge = 10;
-        this.recharge = 2;
+
+        this.rechargeDelay = 10000;
+        this.weaponReady = true;
+
         this.explosionActive = false;
         this.dragValue = 350;
 
@@ -541,7 +543,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             frameRate: 60,
             repeat: -1,
         });
-
+        /*
         this.bombIcon = this.scene.add.sprite(46, this.scene.game.renderer.height*0.78, 'BlackHole');
         this.bombIcon.play('BlackHoleExplosionAnimation');
         this.bombIcon.setFrame(36).setDepth(2);
@@ -551,16 +553,28 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.scene.bombRechargeBarFill.fillStyle(0x4921ad);
         this.scene.bombRechargeBarFill.setDepth(5);
         this.scene.bombRechargeBarFill.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
-
+        */
     }
 
     fire(x, y, alpha, velocityX, velocityY) {
-        if (this.recharge <= 0) {
+        if (this.weaponReady == true) {
+            this.weaponReady = false;
+
+            const incrementInterval = 10;
+            let percent = 0;
+            const timer = setInterval(() => {
+                percent += (incrementInterval / this.rechargeDelay);
+
+                if (percent >= 1) {
+                    percent = 1;
+                    clearInterval(timer);
+                    this.weaponReady = true;
+                }
+                this.scene.setSecondaryPercent(percent);
+            }, incrementInterval);
+
             this.hasHit = false;
-            console.log("dropped a bomb");
-            this.recharge = this.maxRecharge;
-            this.scene.bombRechargeBarFill.clear();
-            this.scene.bombRechargeBarFill.fillStyle(0x4921ad);
+            console.log("dropped a bomb");            
 
             this.body.reset(x,y);
             this.setScale(5,5)
@@ -588,7 +602,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.play('BlackHoleAnimation');
         this.scene.blackHoleInterference.stop();
         this.scene.blackHoleBomb.play();
-        //this.explosionActive = true;
         this.pullEnemies = true;
         this.scene.time.addEvent({
             delay: this.blackHoleDuration,
@@ -623,7 +636,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
 
     preUpdate(time, delta) {
-        this.recharge -= 0.005;
         super.preUpdate(time, delta);
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -638,15 +650,8 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                 this.hitsShip();
             }
         }
-        this.updateRechargeBar();
     }
-    updateRechargeBar() {
-        if (this.recharge >= 0) {
-            this.scene.displayTooltip(`${this.recharge}`, true);
-            const fillHeight = 100 * ((this.recharge-this.maxRecharge) / this.maxRecharge);
-            this.scene.bombRechargeBarFill.fillRect(40, this.scene.game.renderer.height*0.8+100, 10, fillHeight);
-        }
-    }
+
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
             this.enemy = enemy;
@@ -677,7 +682,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
 
     hitsShip() {
-        this.ship.health -= this.ship.bulletDamage /10
+        this.ship.setHealthDelta(-this.ship.bulletDamage /10)
     }
 
     hitsEnemy() {
@@ -685,7 +690,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// Laser physics classes by CodeCaptain https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
+// Laser class based on CodeCaptain's https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
 class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, laserColour) {
         super(scene, x, y, laserColour);
@@ -742,7 +747,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
             this.setVisible(false);
             this.laserHasHit = true;
             this.scene.laserDamage.play();
-            this.ship.health -= this.bulletDamage;
+            this.ship.setHealthDelta(-this.bulletDamage);
             this.scene.displayTintOverlay('0xff0000');
         }
     }
@@ -887,7 +892,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
             const damage = this.kineticDamage - this.ship.hullCollisionDamage;
             if (damage > 0) {
                 this.scene.laserDamage.play();
-                this.ship.health -= damage;
+                this.ship.setHealthDelta(-damage);
                 this.scene.displayTintOverlay('0xff0000');
             }
             this.scene.hullCollision.play();
@@ -911,7 +916,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.lastFired = 0;
         this.maxHealth = 1000;
-        this.health = 200;
+        this.health = 1000;
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.bulletSpeed = 900;
@@ -929,10 +934,50 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.dodgeReady = true;
         this.invincible = false;
         this.immobilised = false;
+
+        this.secondary = 'rocket';
     }
     
+    setSecondary(secondary) {
+        this.secondary = secondary;
+    }
+
     setInvincible(active) {
         this.invincible = active;
+    }
+
+    updateHealthBar() {
+        const healthPercent = this.health / this.maxHealth;
+        this.scene.healthRechargeBar.setPercent(healthPercent);
+    }
+
+    setMaxHealthDelta(delta) {
+        this.maxHealth += delta;
+        this.Health += delta;
+        this.updateHealthBar();
+    }
+
+    getMaxHealth() {
+        return this.maxHealth;
+    }
+
+    setHealthDelta(delta) {
+        this.health += delta;
+        this.updateHealthBar();
+    }
+
+    setHealth(delta) {
+        this.health += delta;
+        this.updateHealthBar();
+    }
+
+    resetHealth() {
+        this.health = this.maxHealth;
+        this.updateHealthBar();
+    }
+
+    getHealth() {
+        return this.health;
     }
 
     preUpdate() {
@@ -972,6 +1017,36 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
+class RechargeBar extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, icon, colour) {
+        super(scene, x, y);
+        scene.add.existing(this);
+
+        this.setActive(true);
+        this.setVisible(true);
+        this.percent = 1;
+        this.icon = this.scene.add.sprite(x+5, y - 20, icon).setDepth(2);;
+        this.colour = colour;
+        this.rechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
+        this.rechargeBar.fillRect(x, y, 10, 100);
+        this.rechargeBarFill = this.scene.add.graphics();
+        this.rechargeBarFill.fillStyle(colour);
+        this.rechargeBarFill.setDepth(5);
+        this.rechargeBarFill.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
+        this.setPercent(this.percent);
+    }
+    
+    setPercent(percent) {
+        console.log(percent)
+        this.rechargeBarFill.clear();
+        this.rechargeBarFill.fillStyle(this.colour);
+
+        const fillHeight = 100 * percent;
+        this.rechargeBarFill.fillRect(this.x, this.y+100, 10, -fillHeight);
+    }
+    
+}
+
 export class PlayScene extends Phaser.Scene{
     constructor() {
         super({
@@ -998,6 +1073,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('blueEnemy', "../../assets/images/BlueEnemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
+        this.load.image('blackHoleIcon', 'assets/images/black-hole-icon.png');
+        this.load.image('laserBeamIcon', 'assets/images/laser-beam-icon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
             frameHeight: 16,
@@ -1016,12 +1093,13 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 180,
             frameHeight: 70,
         });
-        this.load.spritesheet('rainbowEnemy', 'assets/images/change2.png', {
+        this.load.spritesheet('rainbowEnemy', 'assets/images/GoldenRainbowEnemy.png', {
             frameWidth: 52,
             frameHeight: 59,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
         this.load.image('heart', "../../assets/images/heart.png");
+        this.load.image('dodgeIcon', "../../assets/images/dodge-icon.png");
         this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
         this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
@@ -1104,9 +1182,13 @@ export class PlayScene extends Phaser.Scene{
         this.blueEnemyGroup = new EnemyGroup(this, 'blueEnemy', BlueEnemy);
         this.rainbowEnemyGroup = new EnemyGroup(this, 'rainbowEnemy', RainbowEnemy);
 
+        this.healthPercent = this.add.bitmapText(40, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20).setDepth(2).setTint('0xff0024');
+        this.healthPercent.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
+        this.healthRechargeBar = new RechargeBar(this, 80, this.game.renderer.height*0.8, 'heart', '0xff0024');
+        this.dodgeRechargeBar = new RechargeBar(this, 120, this.game.renderer.height*0.8, 'dodgeIcon', '0xccccff');
+
         this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap);
         this.asteroidGroup = new WeaponGroup(this, 0, 'asteroid', Asteroid);
-
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -1117,9 +1199,6 @@ export class PlayScene extends Phaser.Scene{
 
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
-
-        this.healthHeart = this.add.image(24, this.game.renderer.height * 0.962, "heart").setDepth(2);
-        this.healthPercent = this.add.bitmapText(40, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20);
 
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
@@ -1168,18 +1247,31 @@ export class PlayScene extends Phaser.Scene{
             const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
             //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
             if (this.keyE.isDown) {
-                const offsetX = Math.cos(shipAngleRad) * 1080;
-                const offsetY = Math.sin(shipAngleRad) * 1080;
-                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
-                if (!this.laserBeamFiring.isPlaying) {
-                    this.laserBeamFiring.play();
+                if (this.ship.secondary == 'bomb') {
+                    this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
+                } else if (this.ship.secondary == 'laserBeam') {
+                    const offsetX = Math.cos(shipAngleRad) * 1080;
+                    const offsetY = Math.sin(shipAngleRad) * 1080;
+                    this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
+                    if (!this.laserBeamFiring.isPlaying) {
+                        this.laserBeamFiring.play();
+                    }
+                } else if (this.ship.secondary == 'rocket') {
+                    if (this.timeTillGunReady <= 0) {
+                        this.rocketWeapon.play();
+                        this.timeTillGunReady = 125/this.ship.fireRate;
+                        this.shootWeaponByGroup(this.rocketGroup);
+                    } else {
+                        this.timeTillGunReady -= 0.016;
+                    }
                 }
             }
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
-                console.log("E released")
-                this.beamLaser.stopFiring();
-                this.laserBeamFiring.stop();
-                this.laserBeamFiringEnding.play();
+                if (this.ship.secondary == 'laserBeam') {
+                    this.beamLaser.stopFiring();
+                    this.laserBeamFiring.stop();
+                    this.laserBeamFiringEnding.play();
+                }
             }
             if (this.keyShift.isDown) {
                 if (this.ship.dodgeReady) {
@@ -1187,26 +1279,14 @@ export class PlayScene extends Phaser.Scene{
                     this.dodgeRoll();
                 }
             }
-
             if (this.timeTillGunReady <= 0) {
-                //this.gunReadyText.setVisible(1);
                 if (this.keySpace.isDown) {
                     this.zapGun1.play();
                     this.timeTillGunReady = 125/this.ship.fireRate;
                     this.shootWeaponByGroup(this.laserGroupBlue);
-                }
-                if (this.keyR.isDown) {
-                    this.rocketWeapon.play();
-                    this.timeTillGunReady = 125/this.ship.fireRate;
-                    this.shootWeaponByGroup(this.rocketGroup);
-                }
-                if (this.keyF.isDown) {
-                    this.timeTillGunReady = 125/this.ship.fireRate;
-                    this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
-                }
+                }   
             } else {
                 this.timeTillGunReady -= 0.016;
-                //this.gunReadyText.setVisible(0);
             }
 
             if (!this.timerStarted) {
@@ -1219,7 +1299,7 @@ export class PlayScene extends Phaser.Scene{
                     callback: () => {
                         const randomEnemy = Math.random();
                         this.asteroidGroup.fireLaser();
-                        /*
+                        
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.6) {
@@ -1229,7 +1309,7 @@ export class PlayScene extends Phaser.Scene{
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } 
-*/
+                        /*
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } else if (randomEnemy < 0.6) {
@@ -1239,6 +1319,7 @@ export class PlayScene extends Phaser.Scene{
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } 
+                        */
                     },
                     callbackScope: this,
                     loop: true,
@@ -1257,6 +1338,28 @@ export class PlayScene extends Phaser.Scene{
         };
     }
     
+    changeSecondary(secondary) {
+        this.ship.setSecondary(secondary);
+        let icon = '';
+        let colour = '';
+        if (secondary == "bomb") {
+            icon = 'blackHoleIcon';
+            colour = '0x4921ad';
+        } else if (secondary == "rocket") {
+            icon = "rocket";
+            colour = "0xff0000";
+        } else if (secondary == "laserBeam") {
+            icon = "laserBeamIcon";
+            colour = "0x2600ff";
+        }
+        this.secondaryRechargeBar = new RechargeBar(this, 160, this.game.renderer.height*0.8, icon, colour);
+
+    }
+
+    setSecondaryPercent(percent) {
+        this.secondaryRechargeBar.setPercent(percent);
+    }
+
     onTimerComplete() {
         //all the enemies must be killed first
 
@@ -1340,8 +1443,9 @@ export class PlayScene extends Phaser.Scene{
     }
 
     checkPlayerAlive() {
-        this.healthPercent.setText(`${Math.round(this.ship.health)}%`);
-        if (this.ship.health <= 0) {
+        const health = this.ship.getHealth();
+        this.healthPercent.setText(`${Math.round(health)}%`);
+        if (health <= 0) {
             if (!this.playerDeathHasPlayed) {
                 this.playerDeath();
                 this.playerDeathHasPlayed = true;
@@ -1408,14 +1512,19 @@ export class PlayScene extends Phaser.Scene{
         this.dodgeSound.play();
         this.displayDodgeSmokeParticles();
         this.ship.setInvincible(true); 
-        this.time.addEvent({
-            delay: this.ship.dodgeDelay,
-            callback: () => {
-            this.ship.dodgeReady = true;
-            },
-            callbackScope: this,
-            loop: false,
-        });
+        
+        const incrementInterval = 10;
+        let percent = 0;
+        const timer = setInterval(() => {
+            percent += (incrementInterval / this.ship.dodgeDelay);
+
+            if (percent >= 1) {
+                percent = 1;
+                clearInterval(timer);
+                this.ship.dodgeReady = true;
+            }
+            this.dodgeRechargeBar.setPercent(percent);
+        }, incrementInterval);
 
         const angle = Phaser.Math.DegToRad(this.ship.angle);
         const XtoWarpTo = this.ship.x + 300*Math.cos(angle);
@@ -1483,8 +1592,7 @@ export class PlayScene extends Phaser.Scene{
             this.subtractPlayerScrap(150);
         }
         else if(upgrade == "HealthUpgrade"){
-            this.ship.maxHealth += 10;
-            this.ship.health += 10;
+            this.ship.setMaxHealthDelta(10);
             this.subtractPlayerScrap(150);
         }
         else if(upgrade == "FireRateUpgrade"){
@@ -1495,12 +1603,12 @@ export class PlayScene extends Phaser.Scene{
             this.ship.bulletDamage += 10;
             this.subtractPlayerScrap(150);
         }
-
+        /*
         console.log(this.ship.flySpeed, "flyspeed");
         console.log(this.ship.health, "health");
         console.log(this.ship.fireRate, "fireRate");
         console.log(this.ship.bulletDamage, "bulletDamage");
-
+        */
 
     }
 
@@ -1645,7 +1753,8 @@ export class PlayScene extends Phaser.Scene{
                     this.displayTooltip("Purchase secondary X", true);
                 });
                 WeaponButton.on('pointerup', function () {
-                    console.log(weaponAssets[Weapons[0]]);        
+                    console.log(weaponAssets[Weapons[0]]);
+                    this.changeSecondary("bomb");
                 }, this);
                 WeaponButton.on("pointerout", () => {
                     this.displayTooltip("", false);
@@ -1668,8 +1777,9 @@ export class PlayScene extends Phaser.Scene{
                 });
                 RepairShipButton.on('pointerup', function () {
                     console.log("Repairing");
-                    this.subtractPlayerScrap((this.ship.maxHealth - this.ship.health) * 0.2);
-                    this.ship.health = this.ship.maxHealth;
+                    const cost = this.ship.getMaxHealth() - this.ship.getHealth();
+                    this.subtractPlayerScrap(cost * 0.2);
+                    this.ship.resetHealth();
                     this.repairHammer.play();
                     this.repairDrill.play();
                 }, this);
