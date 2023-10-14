@@ -462,6 +462,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
         //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
         this.scene = scene;
         this.ship = scene.ship;
+
         this.projectileSpeed = 900;
         this.dragValue = 1000;
         this.hasHit = false;
@@ -480,6 +481,7 @@ class Rocket extends Phaser.Physics.Arcade.Sprite {
     }
 
     fire(x, y, alpha) {
+        this.scene.rocketWeapon.play();
         this.lockedOnEnemy = undefined;
         this.hasHit = false;
         this.body.reset(x,y);
@@ -810,14 +812,89 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
             key: weaponSprite
         })
         this.zapGunSound = weaponSound;
+        this.readyToFire;
+        this.weaponSprite = weaponSprite;
     }
 
     fireLaser(x, y, alpha, shooter) {
         const laser = this.getFirstDead(false);
         if (laser) {
             laser.fire(x, y, alpha, shooter)
-            //this.zapGunSound.play(); enemy laser sound
         }
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        if (this.weaponSprite == "rocket") {
+
+        }
+    }
+}
+
+class RocketGroup extends Phaser.Physics.Arcade.Group {
+    constructor(scene, weaponSound, weaponSprite, weaponType) {
+        super(scene.physics.world, scene);
+
+        this.createMultiple({
+            classType: weaponType,
+            frameQuantity: 30,
+            active: false,
+            visible: false,
+            key: weaponSprite
+        })
+        this.weaponReady = true;
+        this.timer;
+        this.energyPercent = 1;
+        this.rechargeDelay = 5000;
+        this.scene = scene;
+    }
+
+    fireLaser(x, y, alpha, shooter) {
+        if (!this.weaponReady || this.energyPercent < 0.1) {return;}
+        const laser = this.getFirstDead(false);
+        if (!laser) { return; }
+        this.weaponReady = false;
+        laser.fire(x, y, alpha, shooter)
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        this.energyPercent -= 0.1;
+        this.scene.setSecondaryPercent(this.energyPercent);
+        this.scene.time.addEvent({
+            delay: 200,
+            callback: () => {
+                this.weaponReady = true;
+                 
+            },
+            callbackScope: this,
+            loop: false,
+        });
+        this.scene.time.addEvent({
+            delay: 4000,
+            callback: () => {
+                if (this.timer !== undefined) {
+                    clearInterval(this.timer);
+                }
+                const incrementInterval = 10;
+                this.timer = setInterval(() => {
+                    this.energyPercent += (incrementInterval / this.rechargeDelay);
+                    if (this.energyPercent >= 1) {
+                        this.energyPercent = 1;
+                        clearInterval(this.timer);
+                    }
+                    if (!this.isEnemyLaser) {
+                        this.scene.setSecondaryPercent(this.energyPercent);
+                    }
+                }, incrementInterval);
+            },
+            callbackScope: this,
+            loop: false,
+        }); 
+        
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
     }
 }
 
@@ -1211,7 +1288,7 @@ export class PlayScene extends Phaser.Scene{
 
         this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
         this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
-        this.rocketGroup = new WeaponGroup(this, this.rocketWeapon, 'rocket', Rocket)
+        this.rocketGroup = new RocketGroup(this, this.rocketWeapon, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser', false);
         this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaserRed', true);
         this.bomb = new Bomb(this, 0, 0, 'bomb');
@@ -1292,13 +1369,7 @@ export class PlayScene extends Phaser.Scene{
                     const offsetY = Math.sin(shipAngleRad) * 1080;
                     this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
                 } else if (this.ship.secondary == 'rocket') {
-                    if (this.timeTillGunReady <= 0) {
-                        this.rocketWeapon.play();
-                        this.timeTillGunReady = 125/this.ship.fireRate;
-                        this.shootWeaponByGroup(this.rocketGroup);
-                    } else {
-                        this.timeTillGunReady -= 0.016;
-                    }
+                    this.shootWeaponByGroup(this.rocketGroup);
                 }
             }
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
@@ -1787,7 +1858,7 @@ export class PlayScene extends Phaser.Scene{
                 });
                 WeaponButton.on('pointerup', function () {
                     console.log(weaponAssets[Weapons[0]]);
-                    this.changeSecondary("laserBeam");
+                    this.changeSecondary("rocket");
                 }, this);
                 WeaponButton.on("pointerout", () => {
                     this.displayTooltip("", false);
