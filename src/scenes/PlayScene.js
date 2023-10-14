@@ -320,7 +320,7 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
 }
 
 class BeamLaser extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, sprite, canDamagePlayer) {
+    constructor(scene, x, y, sprite, isEnemyLaser) {
         super(scene, x, y, sprite);
         scene.add.existing(this);
         scene.physics.world.enable(this);
@@ -328,9 +328,13 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
-        this.canDamagePlayer = canDamagePlayer;
+        this.isEnemyLaser = isEnemyLaser;
         this.enemy;
         this.bulletDamage;
+
+        this.rechargeDelay = 5000;
+        this.energyPercent = 1;
+        this.timer = undefined;
 
         this.isFiring = false;
         this.hasHitLastSecond = false;
@@ -350,7 +354,13 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
 
     fire(x, y, alpha, shooter) {
-        if (!this.isFiring) {
+        if (!this.isFiring && this.energyPercent > 0) {
+            if (this.timer !== undefined) {
+                clearInterval(this.timer);
+            }
+            if (!this.scene.laserBeamFiring.isPlaying && !this.isEnemyLaser) {
+                this.scene.laserBeamFiring.play();
+            }
             this.isFiring = true;
             this.body.reset(x, y);
             this.setActive(true);
@@ -368,14 +378,54 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.setActive(false);
         this.setVisible(false);
         this.isFiring = false;
+        if (!this.isEnemyLaser) {
+            this.scene.laserBeamFiring.stop();
+            this.scene.laserBeamFiringEnding.play();
+        }
         if (this.scene.playerEatinglaserBeam.isPlaying) {
             this.scene.playerEatinglaserBeam.stop(); 
             this.scene.playerEatingLaserBeamEnd.play(); 
-         }
+        }
+        this.scene.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (this.timer !== undefined) {
+                    clearInterval(this.timer);
+                }
+                if (!this.isFiring) {
+                    const incrementInterval = 10;
+                    this.timer = setInterval(() => {
+                        this.energyPercent += (incrementInterval / this.rechargeDelay);
+
+                        if (this.energyPercent >= 1) {
+                            this.energyPercent = 1;
+                            clearInterval(this.timer);
+                            this.weaponReady = true;
+                        }
+                        if (!this.isEnemyLaser) {
+                            this.scene.setSecondaryPercent(this.energyPercent);
+                        }
+                    }, incrementInterval);
+                }
+            },
+            callbackScope: this,
+            loop: false,
+        });  
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
+        if (this.isFiring) {
+            if (this.energyPercent > 0) {
+                this.energyPercent -= 0.001;
+                if (!this.isEnemyLaser) {
+                    this.scene.setSecondaryPercent(this.energyPercent);
+                }
+            } else {
+                this.stopFiring();
+            }
+        }
+        
         this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -396,7 +446,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.enemy.health -= this.bulletDamage/500;
     }
     laserHitsShip() {
-        if (this.canDamagePlayer && !this.ship.invincible) {
+        if (this.isEnemyLaser && !this.ship.invincible) {
             this.ship.setHealthDelta(-this.bulletDamage /500);
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
@@ -543,17 +593,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
             frameRate: 60,
             repeat: -1,
         });
-        /*
-        this.bombIcon = this.scene.add.sprite(46, this.scene.game.renderer.height*0.78, 'BlackHole');
-        this.bombIcon.play('BlackHoleExplosionAnimation');
-        this.bombIcon.setFrame(36).setDepth(2);
-        this.scene.bombRechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
-        this.scene.bombRechargeBar.fillRect(40, this.scene.game.renderer.height*0.8, 10, 100);
-        this.scene.bombRechargeBarFill = this.scene.add.graphics();
-        this.scene.bombRechargeBarFill.fillStyle(0x4921ad);
-        this.scene.bombRechargeBarFill.setDepth(5);
-        this.scene.bombRechargeBarFill.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
-        */
     }
 
     fire(x, y, alpha, velocityX, velocityY) {
@@ -1037,7 +1076,6 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
     }
     
     setPercent(percent) {
-        console.log(percent)
         this.rechargeBarFill.clear();
         this.rechargeBarFill.fillStyle(this.colour);
 
@@ -1197,19 +1235,19 @@ export class PlayScene extends Phaser.Scene{
         this.physics.add.existing(this.ship, 0);
         this.ship.body.collideWorldBounds = true;
 
-        let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(1);
-        let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(1).setVisible(0);
+        let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
+        let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
 
-        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20);
-        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20);
-        this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(1);
-        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.875, 'atari-classic', 'Tooltip', 20).setVisible(false);
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20).setDepth(2);
+        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20).setDepth(2);
+        this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(2);
+        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.9, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
 
-        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true);
-        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true);
-        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true);
-        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true);
-        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true);
+        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true).setDepth(2);;
+        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);;
+        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);;
+        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true).setDepth(2);;
+        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true).setDepth(2);;
         
         this.updateHudStatValues();
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
@@ -1253,9 +1291,6 @@ export class PlayScene extends Phaser.Scene{
                     const offsetX = Math.cos(shipAngleRad) * 1080;
                     const offsetY = Math.sin(shipAngleRad) * 1080;
                     this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
-                    if (!this.laserBeamFiring.isPlaying) {
-                        this.laserBeamFiring.play();
-                    }
                 } else if (this.ship.secondary == 'rocket') {
                     if (this.timeTillGunReady <= 0) {
                         this.rocketWeapon.play();
@@ -1269,8 +1304,6 @@ export class PlayScene extends Phaser.Scene{
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
                 if (this.ship.secondary == 'laserBeam') {
                     this.beamLaser.stopFiring();
-                    this.laserBeamFiring.stop();
-                    this.laserBeamFiringEnding.play();
                 }
             }
             if (this.keyShift.isDown) {
@@ -1293,13 +1326,13 @@ export class PlayScene extends Phaser.Scene{
                 this.timerStarted = true;
                 const delay = 2000;
                 const ShopDelay = 2000;
-
+                this.spawnEnemySomewhere(this.blueEnemyGroup);
                 this.time.addEvent({
                     delay: delay,
                     callback: () => {
                         const randomEnemy = Math.random();
                         this.asteroidGroup.fireLaser();
-                        
+                        /*
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.6) {
@@ -1309,15 +1342,15 @@ export class PlayScene extends Phaser.Scene{
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } 
-                        /*
+                        
                         if (randomEnemy < 0.3) {
-                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                            this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } else if (randomEnemy < 0.6) {
-                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                            this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } else if (randomEnemy < 0.9) {
-                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                            this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } else if (randomEnemy < 1) {
-                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
+                            this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } 
                         */
                     },
@@ -1754,7 +1787,7 @@ export class PlayScene extends Phaser.Scene{
                 });
                 WeaponButton.on('pointerup', function () {
                     console.log(weaponAssets[Weapons[0]]);
-                    this.changeSecondary("bomb");
+                    this.changeSecondary("laserBeam");
                 }, this);
                 WeaponButton.on("pointerout", () => {
                     this.displayTooltip("", false);
