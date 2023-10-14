@@ -1182,6 +1182,11 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
         this.rechargeBarFill.fillRect(this.x, this.y+100, 10, -fillHeight);
     }
     
+    destroy() {
+        this.icon.destroy();
+        this.rechargeBar.destroy();
+        this.rechargeBarFill.destroy();
+    }
 }
 
 class StageManager {
@@ -1541,6 +1546,9 @@ export class PlayScene extends Phaser.Scene{
         } else if (secondary == "laserBeam") {
             icon = "laserBeamIcon";
             colour = "0x2600ff";
+        }
+        if (this.secondaryRechargeBar) {
+            this.secondaryRechargeBar.destroy();
         }
         this.secondaryRechargeBar = new RechargeBar(this, 160, this.game.renderer.height*0.8, icon, colour);
 
