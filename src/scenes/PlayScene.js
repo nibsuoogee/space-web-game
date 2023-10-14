@@ -1184,6 +1184,49 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
     
 }
 
+class StageManager {
+    constructor(scene) {
+        this.scene = scene;
+        // stageX = [default, orange, blue, rainbow, asteroid]
+        this.stage1 = [5, 2, 0, 0, 5];
+        this.stage2 = [10, 10, 10, 1, 20];
+        this.currentStage = 1;
+        const sum = this.stage1.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        console.log(sum);
+    }
+
+    stageAction() {
+        //const stageArray
+        const sum = this.stage1.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        if (sum < 1) {
+            this.scene.displayTooltip("stage win!", true);
+            return;
+        }
+        for (let i=0; i<5; i++) {
+            const lottery = Math.random();
+            if (lottery <= this.stage1[i]/sum) {
+                this.spawnByIndex(i);
+                this.stage1[i] -= 1;
+                break;
+            }
+        }
+    }
+
+    spawnByIndex(index) {
+        if (index == 0) {
+            this.scene.spawnEnemySomewhere(this.scene.enemyGroup);
+        } else if (index == 1) {
+            this.scene.spawnEnemySomewhere(this.scene.orangeEnemyGroup);
+        } else if (index == 2) {
+            this.scene.spawnEnemySomewhere(this.scene.blueEnemyGroup);
+        } else if (index == 3) {
+            this.scene.spawnEnemySomewhere(this.scene.rainbowEnemyGroup);
+        } else if (index == 4) {
+            this.scene.asteroidGroup.fireLaser();
+        } 
+    }
+}
+
 export class PlayScene extends Phaser.Scene{
     constructor() {
         super({
@@ -1195,6 +1238,7 @@ export class PlayScene extends Phaser.Scene{
         this.enemyGroup;
         this.laserGroupRed;
         this.playerDeathHasPlayed = false;
+        this.stageActionReady = true;
     }
 
     init(data) {
@@ -1377,9 +1421,24 @@ export class PlayScene extends Phaser.Scene{
 
 
         this.addEvents();
+
+        this.stageManager = new StageManager(this);
     }
 
     update() {
+        if (this.stageActionReady) {
+            this.stageActionReady = false;
+            this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                this.stageManager.stageAction();
+                this.stageActionReady = true;
+            },
+            callbackScope: this,
+            loop: false,
+        });
+        }
+
         this.moveBackground(this.background, this.backgroundSpeed);
         if (this.checkPlayerAlive()) {
             this.playerMove();
@@ -1418,38 +1477,7 @@ export class PlayScene extends Phaser.Scene{
 
             if (!this.timerStarted) {
                 this.timerStarted = true;
-                const delay = 2000;
                 const ShopDelay = 2000;
-                this.time.addEvent({
-                    delay: delay,
-                    callback: () => {
-                        const randomEnemy = Math.random();
-                        this.asteroidGroup.fireLaser();
-                        
-                        if (randomEnemy < 0.3) {
-                            this.spawnEnemySomewhere(this.enemyGroup);
-                        } else if (randomEnemy < 0.6) {
-                            this.spawnEnemySomewhere(this.orangeEnemyGroup);
-                        } else if (randomEnemy < 0.9) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        } else if (randomEnemy < 1) {
-                            this.spawnEnemySomewhere(this.rainbowEnemyGroup);
-                        } 
-                        /*
-                        if (randomEnemy < 0.3) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        } else if (randomEnemy < 0.6) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        } else if (randomEnemy < 0.9) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        } else if (randomEnemy < 1) {
-                            this.spawnEnemySomewhere(this.blueEnemyGroup);
-                        } 
-                        */
-                    },
-                    callbackScope: this,
-                    loop: true,
-                });
 
                 this.time.addEvent({
                     delay: ShopDelay,
