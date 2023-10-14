@@ -1187,26 +1187,43 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
 class StageManager {
     constructor(scene) {
         this.scene = scene;
+        this.readyForNextStage = true;
         // stageX = [default, orange, blue, rainbow, asteroid]
         this.stage1 = [5, 2, 0, 0, 5];
-        this.stage2 = [10, 10, 10, 1, 20];
-        this.currentStage = 1;
-        const sum = this.stage1.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-        console.log(sum);
+        this.stage2 = [10, 6, 5, 1, 20];
+        this.stages = [this.stage1, this.stage2]
+        this.currentStage = 0;
+    }
+
+    setReadyForNextStage(active) {
+        this.readyForNextStage = active;
     }
 
     stageAction() {
-        //const stageArray
-        const sum = this.stage1.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-        if (sum < 1) {
-            this.scene.displayTooltip("stage win!", true);
+        if (this.currentStage == this.stages.length) {
+            this.scene.displayTooltip(`PREPARE FOR BOSS...`, true);
             return;
         }
+        if (!this.readyForNextStage) {return;}
+        this.scene.displayTooltip(`stage ${this.currentStage + 1} begin!`, true);
+        const sum = this.stages[this.currentStage].reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        if (sum < 1) {
+            if (!this.checkActiveEnemies()) {
+                this.scene.displayTooltip("stage win!", true);
+                this.readyForNextStage = false;
+                this.scene.onTimerComplete();
+                this.currentStage += 1;
+                return;
+            }  
+        }
+        const lottery = Math.random();
+        let combinedTickets = 0;
         for (let i=0; i<5; i++) {
-            const lottery = Math.random();
-            if (lottery <= this.stage1[i]/sum) {
+            let currentRoundTickets = this.stages[this.currentStage][i]/sum;
+            combinedTickets += currentRoundTickets;
+            if (lottery <= combinedTickets) {
                 this.spawnByIndex(i);
-                this.stage1[i] -= 1;
+                this.stages[this.currentStage][i] -= 1;
                 break;
             }
         }
@@ -1225,6 +1242,25 @@ class StageManager {
             this.scene.asteroidGroup.fireLaser();
         } 
     }
+
+    checkActiveEnemies() {
+        if (this.iterateOverEnemyTypeGroup(this.scene.enemyGroup)) {return true;}
+        if (this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup)) {return true;}
+        if (this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup)) {return true;}
+        if (this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup)) {return true;}
+        return false;
+    }
+    
+    iterateOverEnemyTypeGroup(group) {
+        let anyActive = false;
+        group.children.iterate((enemy) => {
+            if (enemy.active) {
+                anyActive = true;   
+            }
+        });
+        return anyActive;
+    }
+    
 }
 
 export class PlayScene extends Phaser.Scene{
@@ -1908,7 +1944,7 @@ export class PlayScene extends Phaser.Scene{
                 });
                 WeaponButton.on('pointerup', function () {
                     console.log(weaponAssets[Weapons[0]]);
-                    this.changeSecondary("rocket");
+                    this.changeSecondary("bomb");
                 }, this);
                 WeaponButton.on("pointerout", () => {
                     this.displayTooltip("", false);
@@ -1921,6 +1957,7 @@ export class PlayScene extends Phaser.Scene{
                     console.log("Leaving shop");
                     this.shopSlideOut(image);
                     this.slideOutTweenButtons(shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton);
+                    this.stageManager.setReadyForNextStage(true);
                 }, this);
                 LeaveShopButton.on("pointerout", () => {
                     this.displayTooltip("", false);
