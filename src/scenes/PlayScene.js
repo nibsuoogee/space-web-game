@@ -75,6 +75,9 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     checkHealth() {
         if (this.health <= 0) {
             this.displayParticles('deathFireParticle');
+            if (Math.random() < 0.1) {
+                this.scene.healthKitGroup.fireLaser(this.x + (Math.random()*200)-100, this.y + (Math.random()*200)-100, 0);
+            }
             this.scene.scrapGroup.fireLaser(this.x, this.y, 0);
             this.setActive(false);
             this.setVisible(false);
@@ -902,8 +905,6 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         scene.add.existing(this);
-        //scene.physics.world.enable(this); off so that lasers don't collide and transfer kinetic energy
-        // kinetic damage could be fun for certain weapon types (rocket?)
         this.scene = scene;
         this.ship = scene.ship;
         this.postFX.addBloom(0xffff88, 1, 1, 1.5, 0.5);
@@ -949,6 +950,23 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
 
     AbsorbIntoPlayer() {
         this.scene.addPlayersScrap(this.scrapValue);
+        this.setActive(false);
+        this.setVisible(false);
+    }
+}
+
+class HealthKit extends Scrap {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        this.scene = scene;
+        this.ship = scene.ship;
+        this.healthValue = 100;
+        this.dragValue = 300;
+    }
+
+    AbsorbIntoPlayer() {
+        this.ship.setHealthDelta(this.healthValue);
         this.setActive(false);
         this.setVisible(false);
     }
@@ -1051,7 +1069,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.invincible = false;
         this.immobilised = false;
 
-        this.secondary = 'rocket';
+        this.secondary = '';
     }
     
     setSecondary(secondary) {
@@ -1078,7 +1096,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     setHealthDelta(delta) {
-        this.health += delta;
+        if (this.health + delta > this.maxHealth) {
+            this.health = this.maxHealth;
+        } else {
+            this.health += delta; 
+        }
         this.updateHealthBar();
     }
 
@@ -1213,6 +1235,7 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 59,
         });
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
+        this.load.image('healthkit', "../../assets/images/health-kit-simple.png");
         this.load.image('heart', "../../assets/images/heart.png");
         this.load.image('dodgeIcon', "../../assets/images/dodge-icon.png");
         this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
@@ -1303,6 +1326,7 @@ export class PlayScene extends Phaser.Scene{
         this.dodgeRechargeBar = new RechargeBar(this, 120, this.game.renderer.height*0.8, 'dodgeIcon', '0xccccff');
 
         this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap);
+        this.healthKitGroup = new WeaponGroup(this, 0, 'healthkit', HealthKit);
         this.asteroidGroup = new WeaponGroup(this, 0, 'asteroid', Asteroid);
 
         this.sound.volume = 0.05;
@@ -1360,7 +1384,6 @@ export class PlayScene extends Phaser.Scene{
         if (this.checkPlayerAlive()) {
             this.playerMove();
             const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
-            //this.gunReadyTimeText.setText(`${Phaser.Math.RoundTo(this.timeTillGunReady, 0)} s`)
             if (this.keyE.isDown) {
                 if (this.ship.secondary == 'bomb') {
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
@@ -1397,13 +1420,12 @@ export class PlayScene extends Phaser.Scene{
                 this.timerStarted = true;
                 const delay = 2000;
                 const ShopDelay = 2000;
-                this.spawnEnemySomewhere(this.blueEnemyGroup);
                 this.time.addEvent({
                     delay: delay,
                     callback: () => {
                         const randomEnemy = Math.random();
                         this.asteroidGroup.fireLaser();
-                        /*
+                        
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.enemyGroup);
                         } else if (randomEnemy < 0.6) {
@@ -1413,7 +1435,7 @@ export class PlayScene extends Phaser.Scene{
                         } else if (randomEnemy < 1) {
                             this.spawnEnemySomewhere(this.rainbowEnemyGroup);
                         } 
-                        
+                        /*
                         if (randomEnemy < 0.3) {
                             this.spawnEnemySomewhere(this.blueEnemyGroup);
                         } else if (randomEnemy < 0.6) {
