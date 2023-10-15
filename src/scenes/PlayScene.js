@@ -1036,7 +1036,7 @@ class StageManager {
         this.scene = scene;
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid] enemy types
-        this.stage1 = [1, 0, 0, 0, 5];
+        this.stage1 = [1, 0, 0, 0, 0];
         //this.stage1 = [5, 2, 0, 0, 5];
         this.stage2 = [10, 6, 5, 1, 20];
         this.stages = [this.stage1, this.stage2]
@@ -1250,16 +1250,22 @@ export class PlayScene extends Phaser.Scene{
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
 
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20).setDepth(2);
-        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -500, this.game.renderer.height * 0.95, 'atari-classic', '0', 20).setDepth(2);
-        this.scrapIcon = this.add.image(this.game.renderer.width -530, this.game.renderer.height * 0.96, "scrap").setDepth(2);
-        this.tooltipText = this.add.bitmapText(this.game.renderer.width / 4, this.game.renderer.height * 0.9, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
+        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -600, this.game.renderer.height * 0.95, 'atari-classic', '0', 20).setDepth(2);
+        this.scrapIcon = this.add.image(this.game.renderer.width -630, this.game.renderer.height * 0.96, "scrap").setDepth(2);
+        this.tooltipText = this.add.bitmapText(100, this.game.renderer.height * 0.5, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
 
-        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true).setDepth(2);;
-        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);;
-        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);;
-        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true).setDepth(2);;
-        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 150, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true).setDepth(2);;
+        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true).setDepth(2);
+        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);
+        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);
+        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true).setDepth(2);
+        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true).setDepth(2);
         
+        this.greenUpgradeStat = this.add.bitmapText(this.game.renderer.width - 60, this.game.renderer.height /2 - 40, 'atari-classic', '+10', 15).setVisible(false).setDepth(2).setTint('0x00ff00');
+        this.greenUpgradeStat.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
+
+        this.redUpgradeCost = this.add.bitmapText(this.game.renderer.width -600, this.game.renderer.height * 0.91, 'atari-classic', '+10', 18).setVisible(false).setDepth(2).setTint('0xff0000');
+        this.redUpgradeCost.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
+
         this.updateHudStatValues();
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
 
@@ -1555,6 +1561,37 @@ export class PlayScene extends Phaser.Scene{
         }
         this.tooltipText.setVisible(false);
     }
+
+    displayUpgradeStatTooltip(item, active) {
+        this.greenUpgradeStat.setText(`+${10}`);
+        this.redUpgradeCost.setText(`-${150}`);
+        if (item == "EngineUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height /2 + 40
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
+        } else if (item == "HealthUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height * 0.955;
+            this.greenUpgradeStat.x = 160;
+        } else if (item == "FireRateUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height /2 - 20;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
+        } else if (item == "DamageUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height /2 - 40;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
+        } else if (item == "Repair") {
+            this.greenUpgradeStat.y = this.game.renderer.height * 0.955;
+            this.greenUpgradeStat.x = 160;
+            const healthDelta = this.ship.getMaxHealth() - this.ship.getHealth();
+            this.greenUpgradeStat.setText(`+${healthDelta}%`);
+            this.redUpgradeCost.setText(`-${Math.round(healthDelta * 0.2)}`);
+        } else if (item == "Exit") {
+            this.greenUpgradeStat.setText("");
+            this.redUpgradeCost.setText("");
+        } else {
+            this.redUpgradeCost.setText(`-${1000}`);
+        }
+        this.greenUpgradeStat.setVisible(active);
+        this.redUpgradeCost.setVisible(active);
+    }
     
     updateHudStatValues() {
         this.hudDamageStat.setText(`DMG: ${this.ship.getBulletDamage()}`);
@@ -1607,7 +1644,7 @@ export class PlayScene extends Phaser.Scene{
         } else if(purchase == "Repair") {
             console.log("Repairing");
             const cost = this.ship.getMaxHealth() - this.ship.getHealth();
-            this.subtractPlayerScrap(cost * 0.2);
+            this.subtractPlayerScrap(Math.round(cost * 0.2));
             this.ship.resetHealth();
             this.repairHammer.play();
             this.repairDrill.play();
@@ -1636,7 +1673,7 @@ export class PlayScene extends Phaser.Scene{
         } else if(item == "FireRateUpgrade"){
             return "Upgrades ship firerate";
         } else if(item == "DamageUpgrade"){
-            return "Upgrades ship laser damage";
+            return "Upgrades ship damage";
         } else if(item == "Repair") {
             return "Repair ship hull";
         } else if(item == "Exit") {
@@ -1764,12 +1801,14 @@ export class PlayScene extends Phaser.Scene{
     interactiveShopButton(button, item) {
         button.on("pointerover", () => {
             this.displayTooltip(this.shopItemDescription(item), true);
+            this.displayUpgradeStatTooltip(item, true);
         });
         button.on('pointerup', function () {
             this.shopBuyItem(item);
         }, this);
         button.on("pointerout", () => {
             this.displayTooltip("", false);
+            this.displayUpgradeStatTooltip("", false);
         });
     }
 }
