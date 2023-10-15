@@ -1044,6 +1044,10 @@ class StageManager {
     }
     setReadyForNextStage(active) {
         this.readyForNextStage = active;
+        this.backgroundfx = this.scene.background.preFX.addColorMatrix();
+        this.backgroundfx.hue(Math.random()*360);
+        this.backgroundfx2 = this.scene.background.preFX.addColorMatrix();
+        this.backgroundfx2.brightness(0.9);
     }
     stageAction() {
         if (this.currentStage == this.stages.length) {
@@ -1120,6 +1124,8 @@ export class PlayScene extends Phaser.Scene{
         this.timeTillGunReady = 2;
         this.mouseX = 0;
         this.mouseY = 0;
+        this.mouse1down = false;
+        this.mouse2down = false;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
     }
@@ -1286,6 +1292,24 @@ export class PlayScene extends Phaser.Scene{
             this.mouseY = pointer.y;
         })
 
+        this.input.on('pointerdown', (pointer) => {
+            if (pointer.button == 0) {
+                this.mouse1down = true;
+            } else if (pointer.button == 2) {
+                this.mouse2down = true;
+            }
+        })
+        this.input.on('pointerup', (pointer) => {
+            if (pointer.button == 0) {
+                this.mouse1down = false;
+            } else if (pointer.button == 2) {
+                this.mouse2down = false;
+                if (this.ship.getSecondary() == 'laserBeam') {
+                    this.beamLaser.stopFiring();
+                }
+            }
+        })
+
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -1293,8 +1317,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-        this.keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
-        this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
         this.stageManager = new StageManager(this);
     }
@@ -1318,7 +1340,7 @@ export class PlayScene extends Phaser.Scene{
             this.playerMove();
             const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
             const shipSecondary = this.ship.getSecondary();
-            if (this.keyE.isDown) {
+            if (this.mouse2down || this.keyE.isDown) {
                 if (shipSecondary == 'bomb') {
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
                 } else if (shipSecondary == 'laserBeam') {
@@ -1334,14 +1356,14 @@ export class PlayScene extends Phaser.Scene{
                     this.beamLaser.stopFiring();
                 }
             }
-            if (this.keyShift.isDown) {
+            if (this.keySpace.isDown || this.keyShift.isDown) {
                 if (this.ship.getDodgeReady()) {
                     this.ship.setDodgeReady(false);
                     this.dodgeRoll();
                 }
             }
             if (this.timeTillGunReady <= 0) {
-                if (this.keySpace.isDown) {
+                if (this.mouse1down) {
                     this.zapGun1.play();
                     this.timeTillGunReady = 125/this.ship.getFireRate();
                     this.shootWeaponByGroup(this.laserGroupBlue);
