@@ -660,7 +660,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
 }
 
 class WeaponGroup extends Phaser.Physics.Arcade.Group {
-    constructor(scene, weaponSound, weaponSprite, weaponType) {
+    constructor(scene, weaponSprite, weaponType) {
         super(scene.physics.world, scene);
         this.createMultiple({
             classType: weaponType,
@@ -679,7 +679,7 @@ class WeaponGroup extends Phaser.Physics.Arcade.Group {
 }
 
 class RocketGroup extends Phaser.Physics.Arcade.Group {
-    constructor(scene, weaponSound, weaponSprite, weaponType) {
+    constructor(scene, weaponSprite, weaponType) {
         super(scene.physics.world, scene);
         this.createMultiple({
             classType: weaponType,
@@ -862,8 +862,8 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
 }
 
 class Player extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
-        super(scene, x, y, 'ship');
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
         scene.add.existing(this);
         scene.physics.world.enable(this);
         this.setDepth(2);
@@ -897,6 +897,25 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.immobilised = false;
 
         this.secondary = '';
+
+        this.anims.create({
+            key: 'thrustersOn',
+            frames: this.anims.generateFrameNumbers('ship', {
+                start: 0,
+                end: 4,
+            }),
+            frameRate: 10,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: 'still',
+            frames: [{
+                key: 'ship',
+                frame: 5,
+            }],
+            frameRate: 20,
+        });
     }
     setSecondary(secondary) {this.secondary = secondary;}
     setInvincible(active) {this.invincible = active;}
@@ -932,10 +951,21 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     getPoints() {return this.points;}
     setPointsDelta(delta) {this.points += delta;}
     getBulletDamage() {return this.bulletDamage;}
+    setBulletDamageDelta(delta) {this.bulletDamage += delta;}
     getBulletSpeed() {return this.bulletSpeed;}
+    getFireRate() {return this.fireRate;}
+    setFireRateDelta(delta) {this.fireRate += delta;}
     getInvincible() {return this.invincible;}
     setImmobilised(active) {this.immobilised = active;}
     getHullCollisionDamage() {return this.hullCollisionDamage;}
+    getAngle() {return this.angle;}
+    setAngle(angle) {this.angle = angle;}
+    getSecondary() {return this.secondary;}
+    getDodgeReady() {return this.dodgeReady;}
+    setDodgeReady(active) {this.dodgeReady = active;}
+    getDodgeDelay() {return this.dodgeDelay;}
+    getFlySpeed() {return this.flySpeed;}
+    setFlySpeedDelta(delta) {this.flySpeed += delta;}
     preUpdate() {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -1006,7 +1036,8 @@ class StageManager {
         this.scene = scene;
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid] enemy types
-        this.stage1 = [5, 2, 0, 0, 5];
+        this.stage1 = [1, 0, 0, 0, 5];
+        //this.stage1 = [5, 2, 0, 0, 5];
         this.stage2 = [10, 6, 5, 1, 20];
         this.stages = [this.stage1, this.stage2]
         this.currentStage = 0;
@@ -1087,9 +1118,12 @@ export class PlayScene extends Phaser.Scene{
         console.log(data);
         this.backgroundSpeed = 3;
         this.timeTillGunReady = 2;
+        this.mouseX = 0;
+        this.mouseY = 0;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
     }
+
     preload() {
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
         this.load.image('enemy', "../../assets/images/enemy.png");
@@ -1157,29 +1191,12 @@ export class PlayScene extends Phaser.Scene{
         this.load.audio("blackHoleImplosion", "../../assets/sfx/black-hole-implosion.mp3");
         this.load.audio("shop_intro", "../../assets/music/shop-theme-fratellis-cover-intro.mp3");
         this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
+        this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
 
     }
+
     create() {
         this.addShip();
-
-        this.anims.create({
-            key: 'thrustersOn',
-            frames: this.anims.generateFrameNumbers('ship', {
-                start: 0,
-                end: 4,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: 'still',
-            frames: [{
-                key: 'ship',
-                frame: 5,
-            }],
-            frameRate: 20,
-        });
 
         this.zapGun1 = this.sound.add("zap_gun_1", {volume: 0.6})
         this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
@@ -1200,10 +1217,11 @@ export class PlayScene extends Phaser.Scene{
         this.blackHoleBomb = this.sound.add("blackHoleImplosion", {volume: 1})
         this.shopIntro = this.sound.add("shop_intro", {volume: 1})
         this.shopLoop = this.sound.add("shop_loop", {volume: 1, loop: true})
+        this.shopPurchase = this.sound.add("shop_purchase", {volume: 1})
 
-        this.laserGroupBlue = new WeaponGroup(this, this.zapGun1, 'laser', Laser);
-        this.laserGroupRed = new WeaponGroup(this, this.zapGun1, 'laserRed', Laser);
-        this.rocketGroup = new RocketGroup(this, this.rocketWeapon, 'rocket', Rocket)
+        this.laserGroupBlue = new WeaponGroup(this, 'laser', Laser);
+        this.laserGroupRed = new WeaponGroup(this, 'laserRed', Laser);
+        this.rocketGroup = new RocketGroup(this, 'rocket', Rocket)
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser', false);
         this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaserRed', true);
         this.bomb = new Bomb(this, 0, 0, 'bomb');
@@ -1217,9 +1235,9 @@ export class PlayScene extends Phaser.Scene{
         this.healthRechargeBar = new RechargeBar(this, 80, this.game.renderer.height*0.8, 'heart', '0xff0024');
         this.dodgeRechargeBar = new RechargeBar(this, 120, this.game.renderer.height*0.8, 'dodgeIcon', '0xccccff');
 
-        this.scrapGroup = new WeaponGroup(this, 0, 'scrap', Scrap);
-        this.healthKitGroup = new WeaponGroup(this, 0, 'healthkit', HealthKit);
-        this.asteroidGroup = new WeaponGroup(this, 0, 'asteroid', Asteroid);
+        this.scrapGroup = new WeaponGroup(this, 'scrap', Scrap);
+        this.healthKitGroup = new WeaponGroup(this, 'healthkit', HealthKit);
+        this.asteroidGroup = new WeaponGroup(this, 'asteroid', Asteroid);
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
@@ -1257,6 +1275,11 @@ export class PlayScene extends Phaser.Scene{
             this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
 
+        this.input.on('pointermove', pointer => {
+            this.mouseX = pointer.x;
+            this.mouseY = pointer.y;
+        })
+
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -1266,9 +1289,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
         this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
-
-
-        this.addEvents();
 
         this.stageManager = new StageManager(this);
     }
@@ -1286,37 +1306,38 @@ export class PlayScene extends Phaser.Scene{
             loop: false,
         });
         }
-
+        this.angleShipToMouse();
         this.moveBackground(this.background, this.backgroundSpeed);
         if (this.checkPlayerAlive()) {
             this.playerMove();
-            const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
+            const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
+            const shipSecondary = this.ship.getSecondary();
             if (this.keyE.isDown) {
-                if (this.ship.secondary == 'bomb') {
+                if (shipSecondary == 'bomb') {
                     this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
-                } else if (this.ship.secondary == 'laserBeam') {
+                } else if (shipSecondary == 'laserBeam') {
                     const offsetX = Math.cos(shipAngleRad) * 1080;
                     const offsetY = Math.sin(shipAngleRad) * 1080;
                     this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
-                } else if (this.ship.secondary == 'rocket') {
+                } else if (shipSecondary == 'rocket') {
                     this.shootWeaponByGroup(this.rocketGroup);
                 }
             }
             if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
-                if (this.ship.secondary == 'laserBeam') {
+                if (shipSecondary == 'laserBeam') {
                     this.beamLaser.stopFiring();
                 }
             }
             if (this.keyShift.isDown) {
-                if (this.ship.dodgeReady) {
-                    this.ship.dodgeReady = false;
+                if (this.ship.getDodgeReady()) {
+                    this.ship.setDodgeReady(false);
                     this.dodgeRoll();
                 }
             }
             if (this.timeTillGunReady <= 0) {
                 if (this.keySpace.isDown) {
                     this.zapGun1.play();
-                    this.timeTillGunReady = 125/this.ship.fireRate;
+                    this.timeTillGunReady = 125/this.ship.getFireRate();
                     this.shootWeaponByGroup(this.laserGroupBlue);
                 }   
             } else {
@@ -1343,46 +1364,19 @@ export class PlayScene extends Phaser.Scene{
             this.secondaryRechargeBar.destroy();
         }
         this.secondaryRechargeBar = new RechargeBar(this, 160, this.game.renderer.height*0.8, icon, colour);
-
+        this.shopPurchase.play();
     }
 
     setSecondaryPercent(percent) {
         this.secondaryRechargeBar.setPercent(percent);
     }
 
-    onTimerComplete() {
-        //all the enemies must be killed first
-
-
-
-        // all the scrap floats fairly quickly to the player
-
-        
-        var upgrades = [0,1,2,3],
-        selectedAttributes = [],
-        i = upgrades.length,
-        j = 0;
-    
-        while (i--) {
-            j = Math.floor(Math.random() * (i+1));
-            selectedAttributes.push(upgrades[j]);
-            upgrades.splice(j,1);
-        }
-
-        var selectedWeapon = [];
-        const WeaponAmount = 1;
-        selectedWeapon.push(Math.floor(Math.random() * WeaponAmount));
-        
-        this.shopSlideIn(selectedAttributes, selectedWeapon);
-
-    }
-
     playerMove() {
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
-            this.ship.anims.play('thrustersOn', true);
             if (!this.thruster.isPlaying) {
                 this.thruster.play();
-            }
+                this.ship.play('thrustersOn');
+            } 
             if (!this.ship.immobilised) {
                 if (this.keyW.isDown) {
                     this.ship.setVelocityY(-this.ship.flySpeed)
@@ -1391,23 +1385,25 @@ export class PlayScene extends Phaser.Scene{
                     this.ship.setVelocityY(this.ship.flySpeed)
                 } 
                 if (this.keyA.isDown) {
-                    //this.moveShipX(this.ship, -this.ship.flySpeed)
                     this.ship.setVelocityX(-this.ship.flySpeed)
                 } 
                 if (this.keyD.isDown) {
-                    //this.moveShipX(this.ship, this.ship.flySpeed)
                     this.ship.setVelocityX(this.ship.flySpeed)
                 } 
             }
         } else {
-            this.ship.anims.play('still', true);
             if (this.thruster.isPlaying) {
                 this.thruster.stop();
+            } else {
+                this.ship.play('still');
             }
-            //this.ship.setVelocityX(0);
-            //this.ship.setVelocityY(0);            
         }
         
+    }
+
+    angleShipToMouse() {
+        const angleToMouse = Phaser.Math.Angle.Between(this.mouseX, this.mouseY, this.ship.x, this.ship.y);
+        this.ship.angle = Phaser.Math.RadToDeg(angleToMouse) + 180;
     }
 
     moveBackground(background, speed) {
@@ -1457,8 +1453,8 @@ export class PlayScene extends Phaser.Scene{
     }
 
     subtractPlayerScrap(cost){
-        this.ship.scrap -= cost;
-        this.scrapCounter.setText(`${this.ship.scrap}`);
+        this.ship.setScrapDelta(-cost);
+        this.scrapCounter.setText(`${this.ship.getScrap()}`);
     }
 
     playerDeath() {
@@ -1466,16 +1462,9 @@ export class PlayScene extends Phaser.Scene{
         this.dropLoop.stop();
     }
 
-    addEvents() {
-        this.input.on('pointermove', pointer => {
-            const angleToMouse = Phaser.Math.Angle.BetweenPoints(pointer, this.ship);
-            this.ship.angle = Phaser.Math.RadToDeg(angleToMouse) + 180;
-        })
-    }
-
     shootWeaponByGroup(weaponGroup) {
         const laserSpawnDistance = 150;
-        const shipAngleRad = Phaser.Math.DegToRad(this.ship.angle)
+        const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle())
         const xOffset = Math.cos(shipAngleRad) * laserSpawnDistance;
         const yOffset = Math.sin(shipAngleRad) * laserSpawnDistance;
         weaponGroup.fireLaser(this.ship.x+ xOffset, this.ship.y + yOffset, shipAngleRad, this.ship);
@@ -1506,17 +1495,17 @@ export class PlayScene extends Phaser.Scene{
         const incrementInterval = 10;
         let percent = 0;
         const timer = setInterval(() => {
-            percent += (incrementInterval / this.ship.dodgeDelay);
+            percent += (incrementInterval / this.ship.getDodgeDelay());
 
             if (percent >= 1) {
                 percent = 1;
                 clearInterval(timer);
-                this.ship.dodgeReady = true;
+                this.ship.setDodgeReady(true);
             }
             this.dodgeRechargeBar.setPercent(percent);
         }, incrementInterval);
 
-        const angle = Phaser.Math.DegToRad(this.ship.angle);
+        const angle = Phaser.Math.DegToRad(this.ship.getAngle());
         const XtoWarpTo = this.ship.x + 300*Math.cos(angle);
         const YtoWarpTo = this.ship.y + 300*Math.sin(angle);
         this.ship.body.reset(XtoWarpTo, YtoWarpTo)
@@ -1568,116 +1557,142 @@ export class PlayScene extends Phaser.Scene{
     }
     
     updateHudStatValues() {
-        this.hudDamageStat.setText(`DMG: ${this.ship.bulletDamage}`);
-        this.hudFireRateStat.setText(`FR: ${this.ship.fireRate}`);
-        this.hudBulletSpeedStat.setText(`BS: ${this.ship.bulletSpeed}`);
-        this.hudHullCollisionDamageStat.setText(`HCD: ${this.ship.hullCollisionDamage}`);
-        this.hudFlySpeedStat.setText(`FS: ${this.ship.flySpeed}`);
+        this.hudDamageStat.setText(`DMG: ${this.ship.getBulletDamage()}`);
+        this.hudFireRateStat.setText(`FR: ${this.ship.getFireRate()}`);
+        this.hudBulletSpeedStat.setText(`BS: ${this.ship.getBulletSpeed()}`);
+        this.hudHullCollisionDamageStat.setText(`HCD: ${this.ship.getHullCollisionDamage()}`);
+        this.hudFlySpeedStat.setText(`FS: ${this.ship.getFlySpeed()}`);
     }
 
-    shopBuyItem(upgrade){
-        console.log(upgrade, "this is the upgrade")
-        if(upgrade == "EngineUpgrade"){
-            this.ship.flySpeed += 10;
-            this.subtractPlayerScrap(150);
+    onTimerComplete() {
+        var upgrades = [0,1,2,3],
+        selectedAttributes = [],
+        i = upgrades.length,
+        j = 0;
+    
+        while (i--) {
+            j = Math.floor(Math.random() * (i+1));
+            selectedAttributes.push(upgrades[j]);
+            upgrades.splice(j,1);
         }
-        else if(upgrade == "HealthUpgrade"){
+        let randomWeapon = 0;
+        const lottery = Math.random();
+        if (lottery < 0.33) {
+            randomWeapon = 0;
+        } else if (lottery < 0.66) {
+            randomWeapon = 1;
+        } else {
+            randomWeapon = 2;
+        }
+        this.shopSlideIn(selectedAttributes, randomWeapon);
+    }
+
+    shopBuyItem(purchase){
+        if(purchase == "EngineUpgrade"){
+            this.ship.setFlySpeedDelta(10);
+            this.subtractPlayerScrap(150);
+            this.shopUpgradeMeaty.play();
+        } else if(purchase == "HealthUpgrade"){
             this.ship.setMaxHealthDelta(10);
             this.subtractPlayerScrap(150);
-        }
-        else if(upgrade == "FireRateUpgrade"){
-            this.ship.fireRate += 10;
+            this.shopUpgradeMeaty.play();
+        } else if(purchase == "FireRateUpgrade"){
+            this.ship.setFireRateDelta(10);
             this.subtractPlayerScrap(150);
-        }
-        else if(upgrade == "DamageUpgrade"){
-            this.ship.bulletDamage += 10;
+            this.shopUpgradeMeaty.play();
+        } else if(purchase == "DamageUpgrade"){
+            this.ship.setBulletDamageDelta(10);
             this.subtractPlayerScrap(150);
-        }
-        /*
-        console.log(this.ship.flySpeed, "flyspeed");
-        console.log(this.ship.health, "health");
-        console.log(this.ship.fireRate, "fireRate");
-        console.log(this.ship.bulletDamage, "bulletDamage");
-        */
-
+            this.shopUpgradeMeaty.play();
+        } else if(purchase == "Repair") {
+            console.log("Repairing");
+            const cost = this.ship.getMaxHealth() - this.ship.getHealth();
+            this.subtractPlayerScrap(cost * 0.2);
+            this.ship.resetHealth();
+            this.repairHammer.play();
+            this.repairDrill.play();
+        } else if (purchase == "Exit") {
+            this.shopSlideOut(this.shopImage);
+            this.slideOutTweenButtons(this.buttons);
+            this.stageManager.setReadyForNextStage(true);
+        } else if (purchase == "rocket") {
+            this.subtractPlayerScrap(1000);
+            this.changeSecondary("rocket");
+        } else if (purchase == "blackHoleIcon") {
+            this.subtractPlayerScrap(1000);
+            this.changeSecondary("bomb");
+        } else if (purchase == "laserBeamIcon") {
+            this.subtractPlayerScrap(1000);
+            this.changeSecondary("laserBeam");
+        } 
+        this.updateHudStatValues();
     }
 
     shopItemDescription(item){
         if(item == "EngineUpgrade"){
             return "Upgrades ship speed";
-        }
-        else if(item == "HealthUpgrade"){
+        } else if(item == "HealthUpgrade"){
             return "Upgrades hull health";
-        }
-        else if(item == "FireRateUpgrade"){
+        } else if(item == "FireRateUpgrade"){
             return "Upgrades ship firerate";
-        }
-        else if(item == "DamageUpgrade"){
+        } else if(item == "DamageUpgrade"){
             return "Upgrades ship laser damage";
+        } else if(item == "Repair") {
+            return "Repair ship hull";
+        } else if(item == "Exit") {
+            return "Leave shop and begin next stage";
+        } else if(item == "rocket") {
+            return "Homing rocket secondary";
+        } else if(item == "blackHoleIcon") {
+            return "Black hole bomb secondary";
+        } else if(item == "laserBeamIcon") {
+            return "Laser beam secondary";
         }
-
-
     }
 
-    shopSlideIn(Attributes, Weapons){
+    shopSlideIn(Attributes, randomWeapon){
         this.backgroundSpeed = 0.2;
         this.dropLoop.stop();
         this.shopIntro.play();
         this.shopIntro.on('complete', () => {
             this.shopLoop.play();
         });
-        
-        console.log(Attributes, Weapons)
-
-        //Scale of icons and shop
         const scale = 3;
-        
-        //Assets
         const attributeAssets = ["EngineUpgrade", "HealthUpgrade", "FireRateUpgrade", "DamageUpgrade"];
-        const weaponAssets = ["MissileUpgrade"];
+        const weaponAssets = ["rocket", "blackHoleIcon", "laserBeamIcon"];
 
-        //shop basics
         this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('shopWindow', "../../assets/images/shopWindow.png");
         this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
         this.load.image('RepairShip', "../../assets/images/RepairShip.png");
 
-        //Upgrades
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
         this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
         this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
         this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
 
-        //Weapons
-        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        const image = this.add.image(this.game.config.width, this.game.config.height / 2, 'shop');
+        //this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
+        this.shopImage = this.add.image(this.game.config.width, this.game.config.height / 2, 'shop');
 
-        //add shop to out of bounds
-        image.setOrigin(0, 0.5);
+        this.shopImage.setOrigin(0, 0.5);
 
-        //play ship slide in animation and open shop window
         this.slideInTween = this.tweens.add({
-            targets: image,
-            x: this.game.config.width / 1.3, // shop X position
-            duration: 1000, // Duration of the tween in milliseconds
-            ease: 'Power2', // Easing function
-            paused: true, // Pause the tween initially
+            targets: this.shopImage,
+            x: this.game.config.width / 1.3,
+            duration: 1000,
+            ease: 'Power2',
+            paused: true,
             onComplete: () => {
-
-                //Shop basics in place
                 var shopwindow = this.add.image(0,0, 'shopWindow').setOrigin(0,0);
                 var LeaveShopButton = this.add.image(136*scale,68*scale, 'LeaveShop').setOrigin(0).setInteractive();
                 var RepairShipButton = this.add.image(163*scale,68*scale, 'RepairShip').setOrigin(0).setInteractive();
-
-                //Upgrades in place
                 var Upgrade_1_Button = this.add.image(13*scale,13*scale, attributeAssets[Attributes[0]]).setOrigin(0).setInteractive();
                 var Upgrade_2_Button = this.add.image(67*scale,13*scale, attributeAssets[Attributes[1]]).setOrigin(0).setInteractive();
                 var Upgrade_3_Button = this.add.image(13*scale,58*scale, attributeAssets[Attributes[2]]).setOrigin(0).setInteractive();
                 var Upgrade_4_Button = this.add.image(67*scale,58*scale, attributeAssets[Attributes[3]]).setOrigin(0).setInteractive();
+                var WeaponButton = this.add.image(140*scale,20*scale, weaponAssets[randomWeapon]).setOrigin(0).setInteractive()
 
-                //Weapons in place
-                var WeaponButton = this.add.image(145*scale,15*scale, weaponAssets[Weapons[0]]).setOrigin(0).setInteractive();
-
+                this.buttons = [shopwindow, LeaveShopButton, RepairShipButton, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton];
                 //upgrades scale
                 Upgrade_1_Button.setScale(scale);
                 Upgrade_2_Button.setScale(scale);
@@ -1685,116 +1700,30 @@ export class PlayScene extends Phaser.Scene{
                 Upgrade_4_Button.setScale(scale);
 
                 //Weapon scale
-                WeaponButton.setScale(scale/3);
+                WeaponButton.setScale(scale);
 
                 //Shop basics scale
                 LeaveShopButton.setScale(scale/5);
                 RepairShipButton.setScale(scale/5);
                 shopwindow.setScale(scale);
         
-                var shopContainer = this.add.container(32,70, [shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton], Phaser.Geom.Rectangle.Contains)
-        
-                Upgrade_1_Button.on("pointerover", () => {
-                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[0]]), true);
-                });
-                Upgrade_1_Button.on('pointerup', function () {
-                    this.shopBuyItem(attributeAssets[Attributes[0]])
-                    console.log(attributeAssets[Attributes[0]]);
-                    this.shopUpgradeMeaty.play();
-        
-                }, this);
-                Upgrade_1_Button.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-
-                Upgrade_2_Button.on("pointerover", () => {
-                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[1]]), true);
-                });
-                Upgrade_2_Button.on('pointerup', function () {
-                    this.shopBuyItem(attributeAssets[Attributes[1]])
-                    console.log(attributeAssets[Attributes[1]]);
-                    this.shopUpgradeMeaty.play();
-        
-                }, this);
-                Upgrade_2_Button.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-
-                Upgrade_3_Button.on("pointerover", () => {
-                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[2]]), true);
-                });
-                Upgrade_3_Button.on('pointerup', function () {
-                    this.shopBuyItem(attributeAssets[Attributes[2]])
-                    console.log(attributeAssets[Attributes[2]]);
-                    this.shopUpgradeMeaty.play();
-        
-                }, this);
-                Upgrade_3_Button.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-
-                Upgrade_4_Button.on("pointerover", () => {
-                    this.displayTooltip(this.shopItemDescription(attributeAssets[Attributes[3]]), true);
-                });
-                Upgrade_4_Button.on('pointerup', function () {
-                    this.shopBuyItem(attributeAssets[Attributes[3]])
-                    console.log(attributeAssets[Attributes[3]]);
-                    this.shopUpgradeMeaty.play();
-                }, this);
-                Upgrade_4_Button.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-                      
-                WeaponButton.on("pointerover", () => {
-                    this.displayTooltip("Purchase secondary X", true);
-                });
-                WeaponButton.on('pointerup', function () {
-                    console.log(weaponAssets[Weapons[0]]);
-                    this.changeSecondary("rocket");
-                }, this);
-                WeaponButton.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-                      
-                LeaveShopButton.on("pointerover", () => {
-                    this.displayTooltip("Leave shop", true);
-                });
-                LeaveShopButton.on('pointerup', function () {
-                    console.log("Leaving shop");
-                    this.shopSlideOut(image);
-                    this.slideOutTweenButtons(shopwindow, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton, LeaveShopButton, RepairShipButton);
-                    this.stageManager.setReadyForNextStage(true);
-                }, this);
-                LeaveShopButton.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
-                    
-                RepairShipButton.on("pointerover", () => {
-                    this.displayTooltip("Repair hull", true);
-                });
-                RepairShipButton.on('pointerup', function () {
-                    console.log("Repairing");
-                    const cost = this.ship.getMaxHealth() - this.ship.getHealth();
-                    this.subtractPlayerScrap(cost * 0.2);
-                    this.ship.resetHealth();
-                    this.repairHammer.play();
-                    this.repairDrill.play();
-                }, this);
-                RepairShipButton.on("pointerout", () => {
-                    this.displayTooltip("", false);
-                });
+                var shopContainer = this.add.container(32,70, this.buttons, Phaser.Geom.Rectangle.Contains)
+                
+                this.interactiveShopButton(Upgrade_1_Button, attributeAssets[Attributes[0]]);
+                this.interactiveShopButton(Upgrade_2_Button, attributeAssets[Attributes[1]]);
+                this.interactiveShopButton(Upgrade_3_Button, attributeAssets[Attributes[2]]);
+                this.interactiveShopButton(Upgrade_4_Button, attributeAssets[Attributes[3]]);
+                this.interactiveShopButton(RepairShipButton, "Repair");
+                this.interactiveShopButton(LeaveShopButton, "Exit");
+                this.interactiveShopButton(WeaponButton, weaponAssets[randomWeapon]);
             }
         });
-
         this.slideInTween.play();
         this.shopZap.play();
-        
     }
 
-    //delete shop buttons after leave shop has been pressed
-    slideOutTweenButtons(button1, button2, button3, button4, button5, button6, button7, shopwindow) {
+    slideOutTweenButtons(targets) {
         const duration = 2000;
-        const targets = [button1, button2, button3, button4, button5, button6, button7, shopwindow];
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
             this.tweens.add({
@@ -1830,5 +1759,17 @@ export class PlayScene extends Phaser.Scene{
         this.displayTooltip("", false);
         this.slideOutTween.play();
         this.updateHudStatValues();
+    }
+
+    interactiveShopButton(button, item) {
+        button.on("pointerover", () => {
+            this.displayTooltip(this.shopItemDescription(item), true);
+        });
+        button.on('pointerup', function () {
+            this.shopBuyItem(item);
+        }, this);
+        button.on("pointerout", () => {
+            this.displayTooltip("", false);
+        });
     }
 }
