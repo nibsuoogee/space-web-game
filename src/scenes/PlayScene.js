@@ -1108,9 +1108,10 @@ class StageManager {
         this.scene = scene;
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid] enemy types
-        this.stage1 = [5, 2, 1, 1, 5];
-        this.stage2 = [10, 6, 5, 1, 20];
-        this.stages = [this.stage1, this.stage2]
+        this.stages = []
+        this.stages.push([5, 2, 1, 1, 5]);
+        this.stages.push([10, 6, 5, 1, 20]);
+        
         this.currentStage = 0;
     }
     setReadyForNextStage(active) {
@@ -1390,7 +1391,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary("laserBeam");
     }
 
     update() {
@@ -1681,6 +1681,7 @@ export class PlayScene extends Phaser.Scene{
             this.greenUpgradeStat.setText("");
             this.redUpgradeCost.setText("");
         } else {
+            this.greenUpgradeStat.setText("");
             this.redUpgradeCost.setText(`-${1000}`);
         }
         this.greenUpgradeStat.setVisible(active);
