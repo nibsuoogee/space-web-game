@@ -542,6 +542,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     laserHitsShip() {
         if (this.isEnemyLaser && !this.ship.getInvincible()) {
             this.ship.setHealthDelta(-this.bulletDamage/5000);
+            this.scene.displayTintOverlay('0xff0000');
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
             }
@@ -1198,6 +1199,7 @@ export class PlayScene extends Phaser.Scene{
         this.mouseY = 0;
         this.mouse1down = false;
         this.mouse2down = false;
+        this.tintIsPlaying = false;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
     }
@@ -1394,6 +1396,15 @@ export class PlayScene extends Phaser.Scene{
     }
 
     update() {
+        if (this.timeTillGunReady <= 0) {
+            if (this.mouse1down) {
+                this.zapGun1.play();
+                this.timeTillGunReady = 125/this.ship.getFireRate();
+                this.shootWeaponByGroup(this.laserGroupBlue);
+            }   
+        } else {
+            this.timeTillGunReady -= 0.016;
+        }
         if (this.stageActionReady) {
             this.stageActionReady = false;
             this.time.addEvent({
@@ -1434,15 +1445,7 @@ export class PlayScene extends Phaser.Scene{
                     this.dodgeRoll();
                 }
             }
-            if (this.timeTillGunReady <= 0) {
-                if (this.mouse1down) {
-                    this.zapGun1.play();
-                    this.timeTillGunReady = 125/this.ship.getFireRate();
-                    this.shootWeaponByGroup(this.laserGroupBlue);
-                }   
-            } else {
-                this.timeTillGunReady -= 0.016;
-            }
+            
         };
     }
 
@@ -1511,21 +1514,26 @@ export class PlayScene extends Phaser.Scene{
     }
 
     displayTintOverlay(colour) {
-        this.damageOverlay.setVisible(1);
-        this.damageOverlay.setFillStyle(colour, 1);
-        this.damageOverlay.setAlpha(0);
-        this.damageOverlay.setDepth(9999);
-        const duration = 200;
-        this.tweens.add({
-            targets: this.damageOverlay,
-            alpha: 0.5,
-            duration: duration / 2,
-            yoyo: true,
-            repeat: 0,
-            onComplete: () => {
-                this.damageOverlay.setVisible(0);
-            }
-        });
+        if (!this.tintIsPlaying) {
+            this.tintIsPlaying = true;
+            this.damageOverlay.setVisible(1);
+            this.damageOverlay.setFillStyle(colour, 1);
+            this.damageOverlay.setAlpha(0);
+            this.damageOverlay.setDepth(9999);
+            const duration = 200;
+            this.tweens.add({
+                targets: this.damageOverlay,
+                alpha: 0.5,
+                duration: duration / 2,
+                yoyo: true,
+                repeat: 0,
+                onComplete: () => {
+                    this.damageOverlay.setVisible(0);
+                    this.tintIsPlaying = false;
+                }
+            });
+        }
+        
     }
 
     checkPlayerAlive() {
