@@ -1236,8 +1236,13 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 52,
             frameHeight: 59,
         });
+        this.load.spritesheet('shop', "../../assets/images/shop.png",{
+            frameWidth: 200,
+            frameHeight: 200,
+        });
+
         this.load.image('scrap', "../../assets/images/scrap-simple.png");
-        this.load.image('healthkit', "../../assets/images/health-kit-simple.png");
+        this.load.image('healthkit', "../../assets/images/Healthkit.png");
         this.load.image('heart', "../../assets/images/heart.png");
         this.load.image('dodgeIcon', "../../assets/images/dodge-icon.png");
         this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
@@ -1245,7 +1250,6 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
-        this.load.image('shop', "../../assets/images/shop.png");
         this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
         this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
         this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
@@ -1391,6 +1395,13 @@ export class PlayScene extends Phaser.Scene{
 
         this.stageManager = new StageManager(this);
         this.changeSecondary("laserBeam")
+
+        this.anims.create({
+            key: 'shopAnimation',
+            frames: this.anims.generateFrameNumbers('shop', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1,
+        });
     }
 
     update() {
@@ -1816,7 +1827,7 @@ export class PlayScene extends Phaser.Scene{
         const attributeAssets = ["EngineUpgrade", "HealthUpgrade", "FireRateUpgrade", "DamageUpgrade"];
         const weaponAssets = ["rocket", "blackHoleIcon", "laserBeamIcon"];
 
-        this.load.image('shop', "../../assets/images/shop.png");
+        this.load.spritesheet('shop', "../../assets/images/shop.png");
         this.load.image('shopWindow', "../../assets/images/shopWindow.png");
         this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
         this.load.image('RepairShip', "../../assets/images/RepairShip.png");
@@ -1827,9 +1838,11 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
 
         //this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        this.shopImage = this.add.image(this.game.config.width, this.game.config.height / 2, 'shop');
+        this.shopImage = this.add.sprite(this.game.config.width, this.game.config.height / 2, 'shop');
 
         this.shopImage.setOrigin(0, 0.5);
+
+        this.shopImage.play('shopAnimation');
 
         this.slideInTween = this.tweens.add({
             targets: this.shopImage,
