@@ -376,7 +376,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite, isEnemyLaser) {
         super(scene, x, y, sprite);
         scene.add.existing(this);
-        scene.physics.add.existing(this);
+        //scene.physics.add.existing(this);
 
         this.scene = scene;
         this.ship = scene.ship;
@@ -384,20 +384,14 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         this.rechargeDelay = 5000;
         this.energyPercent = 1;
         this.timer = undefined;
-        this.body.reset(this.scene.game.renderer.width/2, this.scene.game.renderer.height /2)
+        //this.body.reset(this.scene.game.renderer.width/2, this.scene.game.renderer.height /2)
+        this.setPosition(this.scene.game.renderer.width/2, this.scene.game.renderer.height /2);
         this.setActive(false);
         this.setVisible(false);
         this.isFiring = false;
         this.hasHitLastSecond = false;
         this.circles = [];
-        for (let i = 0; i<30; i++) {
-            const circle = this.scene.add.circle(0, 0, 40)
-            circle.setVisible(false);
-            circle.setActive(false);
-            scene.add.existing(circle);
-            scene.physics.add.existing(circle);
-            this.circles.push(circle)
-        }        
+             
         this.postFX.addBloom(0xffffff, 1, 1, 2, 2, 8);
         const fx = this.postFX.addDisplacement('distort', -0.00, -0.00);
         const shine = this.postFX.addShine(10, .5, 5);
@@ -423,13 +417,13 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
             this.isFiring = true;
             this.setActive(true);
             this.setVisible(true);
-            this.body.reset(x, y);
+            this.setPosition(x, y);
             this.setScale(1, 5)
             this.setDepth(1);
             this.bulletDamage = shooter.getBulletDamage();
-            this.enableCircles();
+            this.createCircles();
         } else {
-            this.body.reset(x, y);
+            this.setPosition(x, y);
             this.angle = Phaser.Math.RadToDeg(alpha);
             for (let i = 0; i<this.circles.length; i++) {
                 this.circles[i].setPosition(
@@ -439,26 +433,26 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
             }
         }
     }
-    enableCircles() {
-        for (let i = 0; i < this.circles.length; i++) {
-            const circle = this.circles[i];
-            if (circle) {
-                circle.setActive(true);
-                circle.setVisible(true);
-            }
-        }
+    createCircles() {
+        for (let i = 0; i<30; i++) {
+            const circle = this.scene.add.circle(0, 0, 40)
+            circle.setVisible(false);
+            this.scene.add.existing(circle);
+            this.scene.physics.add.existing(circle);
+            this.circles.push(circle)
+        }   
     }
-    disableCircles() {
+    destroyCircles() {
         for (let i = 0; i < this.circles.length; i++) {
             const circle = this.circles[i];
             if (circle && circle.active) {
-                circle.setActive(false);
-                circle.setVisible(false);
+                circle.destroy();
             }
         }
+        this.circles = [];
     }
     stopFiring() {
-        this.disableCircles();
+        this.destroyCircles();
         this.setActive(false);
         this.setVisible(false);
         this.isFiring = false;
@@ -555,11 +549,10 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, sprite);
         scene.add.existing(this);
         scene.physics.world.enable(this);
-        this.setActive(true);
+        this.setActive(false);
         this.setVisible(false);
         this.scene = scene;
         this.ship = scene.ship;
-
         this.damageRadius = 300;
         this.pullRadius = 800;
         this.pullEnemies = false;
@@ -669,6 +662,7 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.pullEnemies = false;
         this.scene.displayTintOverlay('0xffffff');
         this.setVisible(false);
+        this.setActive(false);
     }
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
@@ -1027,7 +1021,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setBulletDamageDelta(delta) {this.bulletDamage += delta;}
     getBulletSpeed() {return this.bulletSpeed;}
     getFireRate() {return this.fireRate;}
-    setFireRateDelta(delta) {this.fireRate += delta;}
+    setFireRateDelta(delta) {
+        this.fireRate += delta;
+        this.scene.shipFireRateDelay = 1000/(this.fireRate/60);
+    }
     getInvincible() {return this.invincible;}
     setImmobilised(active) {this.immobilised = active;}
     getHullCollisionDamage() {return this.hullCollisionDamage;}
@@ -1040,10 +1037,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     getFlySpeed() {return this.flySpeed;}
     setFlySpeedDelta(delta) {this.flySpeed += delta;}
     preUpdate() {
+        /*
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
+        */
     }
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
@@ -1194,9 +1193,9 @@ export class PlayScene extends Phaser.Scene{
     init(data) {
         console.log(data);
         this.backgroundSpeed = 3;
-        this.timeTillGunReady = 2;
         this.mouseX = 0;
         this.mouseY = 0;
+        this.laserReady = true;
         this.mouse1down = false;
         this.mouse2down = false;
         this.tintIsPlaying = false;
@@ -1314,21 +1313,18 @@ export class PlayScene extends Phaser.Scene{
         this.blueEnemyGroup = new EnemyGroup(this, 'blueEnemy', BlueEnemy);
         this.rainbowEnemyGroup = new EnemyGroup(this, 'rainbowEnemy', RainbowEnemy);
 
+        this.scrapGroup = new WeaponGroup(this, 'scrap', Scrap);
+        this.healthKitGroup = new WeaponGroup(this, 'healthkit', HealthKit);
+        this.asteroidGroup = new WeaponGroup(this, 'asteroid', Asteroid);
+        
         this.healthPercent = this.add.bitmapText(40, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20).setDepth(2).setTint('0xff0024');
         this.healthPercent.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
         this.healthRechargeBar = new RechargeBar(this, 80, this.game.renderer.height*0.8, 'heart', '0xff0024');
         this.dodgeRechargeBar = new RechargeBar(this, 120, this.game.renderer.height*0.8, 'dodgeIcon', '0xccccff');
 
-        this.scrapGroup = new WeaponGroup(this, 'scrap', Scrap);
-        this.healthKitGroup = new WeaponGroup(this, 'healthkit', HealthKit);
-        this.asteroidGroup = new WeaponGroup(this, 'asteroid', Asteroid);
-
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
         this.background.preFX.addBarrel(0.5);
-
-        this.physics.add.existing(this.ship, 0);
-        this.ship.body.collideWorldBounds = true;
 
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
@@ -1369,7 +1365,6 @@ export class PlayScene extends Phaser.Scene{
             this.mouseX = pointer.x;
             this.mouseY = pointer.y;
         })
-
         this.input.on('pointerdown', (pointer) => {
             if (pointer.button == 0) {
                 this.mouse1down = true;
@@ -1397,6 +1392,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
+        this.changeSecondary("laserBeam")
 
         this.anims.create({
             key: 'shopAnimation',
@@ -1407,26 +1403,30 @@ export class PlayScene extends Phaser.Scene{
     }
 
     update() {
-        if (this.timeTillGunReady <= 0) {
-            if (this.mouse1down) {
-                this.zapGun1.play();
-                this.timeTillGunReady = 125/this.ship.getFireRate();
-                this.shootWeaponByGroup(this.laserGroupBlue);
-            }   
-        } else {
-            this.timeTillGunReady -= 0.016;
+        if (this.mouse1down && this.laserReady) {
+            this.laserReady = false;
+            this.time.addEvent({
+                delay: this.shipFireRateDelay,
+                callback: () => {
+                    this.zapGun1.play();
+                    this.shootWeaponByGroup(this.laserGroupBlue);
+                    this.laserReady = true;
+                },
+                callbackScope: this,
+                loop: false,
+            });
         }
         if (this.stageActionReady) {
             this.stageActionReady = false;
             this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.stageManager.stageAction();
-                this.stageActionReady = true;
-            },
-            callbackScope: this,
-            loop: false,
-        });
+                delay: 1000,
+                callback: () => {
+                    this.stageManager.stageAction();
+                    this.stageActionReady = true;
+                },
+                callbackScope: this,
+                loop: false,
+            });
         }
         this.angleShipToMouse();
         this.moveBackground(this.background, this.backgroundSpeed);
@@ -1604,6 +1604,7 @@ export class PlayScene extends Phaser.Scene{
         const centerY = this.game.renderer.height / 2;
         this.ship = new Player(this, centerX, centerY);
         this.ship.setCollideWorldBounds(true);
+        this.shipFireRateDelay = 1000/(this.ship.getFireRate()/60);
     }
 
     dodgeRoll() {
