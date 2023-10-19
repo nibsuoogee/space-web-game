@@ -1036,6 +1036,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     getDodgeDelay() {return this.dodgeDelay;}
     getFlySpeed() {return this.flySpeed;}
     setFlySpeedDelta(delta) {this.flySpeed += delta;}
+    setHullCollisionDamageDelta(delta) {this.hullCollisionDamage += delta;}
+    setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
     preUpdate() {
         /*
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
@@ -1723,7 +1725,7 @@ export class PlayScene extends Phaser.Scene{
         } else if (lottery < 0.66) {
             randomWeapon = 1;
         } else {
-            randomWeapon = 2;
+            randomWeapon = 1;
         }
         this.shopSlideIn(selectedAttributes, randomWeapon);
     }
@@ -1743,6 +1745,14 @@ export class PlayScene extends Phaser.Scene{
             this.shopUpgradeMeaty.play();
         } else if(purchase == "DamageUpgrade"){
             this.ship.setBulletDamageDelta(10);
+            this.subtractPlayerScrap(150);
+            this.shopUpgradeMeaty.play();
+        }  else if(purchase == "HullCollisionDamage"){
+            this.ship.setHullCollisionDamageDelta(10);
+            this.subtractPlayerScrap(150);
+            this.shopUpgradeMeaty.play();
+        } else if(purchase == "BulletSpeed"){
+            this.ship.setBulletSpeedDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "Repair") {
@@ -1771,13 +1781,17 @@ export class PlayScene extends Phaser.Scene{
 
     shopItemDescription(item){
         if(item == "EngineUpgrade"){
-            return "Upgrades ship speed";
+            return "Increase ship speed";
         } else if(item == "HealthUpgrade"){
-            return "Upgrades hull health";
+            return "Upgrade hull health";
         } else if(item == "FireRateUpgrade"){
-            return "Upgrades ship firerate";
+            return "Increase ship fire rate";
         } else if(item == "DamageUpgrade"){
-            return "Upgrades ship damage";
+            return "Increase ship damage";
+        } else if(item == "HullCollisionDamage"){
+            return "Increase outgoing and reduce incoming collision damage";
+        } else if(item == "BulletSpeed"){
+            return "Increase bullet speed";
         } else if(item == "Repair") {
             return "Repair ship hull";
         } else if(item == "Exit") {
