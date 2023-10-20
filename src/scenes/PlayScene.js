@@ -1360,7 +1360,7 @@ export class PlayScene extends Phaser.Scene{
         });
         menuButton.on("pointerup", () => {
             dropLoop.stop();
-            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
+            //this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
 
         this.input.on('pointermove', pointer => {
@@ -1405,6 +1405,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     update() {
+        if (!this.checkPlayerAlive()) {return;}
         if (this.mouse1down && this.laserReady) {
             this.laserReady = false;
             this.time.addEvent({
@@ -1432,34 +1433,31 @@ export class PlayScene extends Phaser.Scene{
         }
         this.angleShipToMouse();
         this.moveBackground(this.background, this.backgroundSpeed);
-        if (this.checkPlayerAlive()) {
-            this.playerMove();
-            const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
-            const shipSecondary = this.ship.getSecondary();
-            if (this.mouse2down || this.keyE.isDown) {
-                if (shipSecondary == 'bomb') {
-                    this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
-                } else if (shipSecondary == 'laserBeam') {
-                    const offsetX = Math.cos(shipAngleRad) * 1080;
-                    const offsetY = Math.sin(shipAngleRad) * 1080;
-                    this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
-                } else if (shipSecondary == 'rocket') {
-                    this.shootWeaponByGroup(this.rocketGroup);
-                }
+        this.playerMove();
+        const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
+        const shipSecondary = this.ship.getSecondary();
+        if (this.mouse2down || this.keyE.isDown) {
+            if (shipSecondary == 'bomb') {
+                this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
+            } else if (shipSecondary == 'laserBeam') {
+                const offsetX = Math.cos(shipAngleRad) * 1080;
+                const offsetY = Math.sin(shipAngleRad) * 1080;
+                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
+            } else if (shipSecondary == 'rocket') {
+                this.shootWeaponByGroup(this.rocketGroup);
             }
-            if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
-                if (shipSecondary == 'laserBeam') {
-                    this.beamLaser.stopFiring();
-                }
+        }
+        if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
+            if (shipSecondary == 'laserBeam') {
+                this.beamLaser.stopFiring();
             }
-            if (this.keySpace.isDown || this.keyShift.isDown) {
-                if (this.ship.getDodgeReady()) {
-                    this.ship.setDodgeReady(false);
-                    this.dodgeRoll();
-                }
+        }
+        if (this.keySpace.isDown || this.keyShift.isDown) {
+            if (this.ship.getDodgeReady()) {
+                this.ship.setDodgeReady(false);
+                this.dodgeRoll();
             }
-            
-        };
+        }
     }
 
     changeSecondary(secondary) {
@@ -1546,7 +1544,7 @@ export class PlayScene extends Phaser.Scene{
                 }
             });
         }
-        
+
     }
 
     checkPlayerAlive() {
