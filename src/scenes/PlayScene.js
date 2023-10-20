@@ -254,6 +254,52 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
     }
 }
 
+class Boss extends Enemy {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        this.setActive(false);
+        this.setVisible(false);
+        this.maxHealth = 400;
+        this.setScale(3,3);
+    }
+    checkHealth() {
+        if (this.health <= 0) {
+            this.scene.bossHealthBar.destroy();
+            this.displayParticles('deathFireParticle');
+            this.spawnScrap();
+            this.setActive(false);
+            this.setVisible(false);
+            this.scene.addPlayersPoints(10);
+        } else {
+            this.healthText.setVisible(false);
+            this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
+        }
+    }
+    checkMovement() {return;} //disable inherited movement
+    spawnScrap() {
+        const deathX = this.x;
+        const deathY = this.y;
+        this.scene.time.addEvent({
+            delay: 300,
+            callback: () => {
+                this.scene.scrapGroup.fireLaser(deathX + (Math.random()*200)-100, deathY + (Math.random()*200)-100, 0);
+            },
+            callbackScope: this,
+            repeat: 10,
+
+        });
+        this.scene.time.addEvent({
+            delay: 8000,
+            callback: () => {
+                console.log("destroyed!")
+                this.destroy();
+            },
+            callbackScope: this,
+            repeat: false,
+        });
+    }
+}
+
 // Laser class based on CodeCaptain's https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
 class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite) {
@@ -265,6 +311,7 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.hasHit = false;
     }
     fire(x, y, alpha, shooter) {
+        this.shooter = shooter;
         this.hasHit = false;
         this.body.reset(x,y);
         this.setActive(true);
@@ -285,6 +332,9 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
             this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
             this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
             this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
+            if (this.shooter === this.ship) {
+                this.scene.physics.world.overlap(this, this.scene.boss, this.laserHitsBoss, null, this);
+            }
         }
         if (this.x <= 0 || this.x >= this.scene.game.renderer.width || this.y <= 0 || this.y >= this.scene.game.renderer.height) {
             this.setActive(false);
@@ -312,6 +362,11 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(false);
         this.hasHit = true;
         this.enemy.setHealthDelta(-this.bulletDamage);
+    }
+    laserHitsBoss() {
+        this.setVisible(false);
+        this.hasHit = true;
+        this.scene.boss.setHealthDelta(-this.bulletDamage);
     }
 }
 
@@ -514,6 +569,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
                 this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
                 this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
                 this.iterateOverEnemyTypeGroup(this.scene.asteroidGroup)
+                this.scene.physics.world.overlap(circle, this.scene.boss, this.laserHitsBoss, null, this);
             }
         }
     }
@@ -532,6 +588,9 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
     laserHitsEnemy() {
         this.enemy.setHealthDelta(-this.bulletDamage/5000);
+    }
+    laserHitsBoss() {
+        this.scene.boss.setHealthDelta(-this.bulletDamage/5000);
     }
     laserHitsShip() {
         if (this.isEnemyLaser && !this.ship.getInvincible()) {
@@ -670,7 +729,9 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
-
+        if (this.explosionActive) {
+            this.scene.physics.world.overlap(this, this.scene.boss, this.hitsBoss, null, this);
+        }
         this.iterateOverEnemyTypeGroup(this.scene.scrapGroup);
         this.iterateOverEnemyTypeGroup(this.scene.healthKitGroup);
         this.iterateOverEnemyTypeGroup(this.scene.asteroidGroup);
@@ -716,6 +777,9 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
     }
     hitsEnemy() {
         this.enemy.setHealthDelta(-this.ship.bulletDamage/2)
+    }
+    hitsBoss() {
+        this.scene.boss.setHealthDelta(-this.ship.bulletDamage/2)
     }
 }
 
@@ -1107,14 +1171,45 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
+class BossHealthBar extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, icon, colour) {
+        super(scene, x, y);
+        scene.add.existing(this);
+        this.setActive(true);
+        this.setVisible(true);
+        this.percent = 1;
+        this.icon = this.scene.add.sprite(x+5, y - 20, icon).setDepth(2);;
+        this.colour = colour;
+        this.rechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
+        this.rechargeBar.fillRect(x, y, 600, 10);
+        this.rechargeBarFill = this.scene.add.graphics();
+        this.rechargeBarFill.fillStyle(colour);
+        this.rechargeBarFill.setDepth(5);
+        this.rechargeBarFill.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
+        this.setPercent(this.percent);
+    }
+    setPercent(percent) {
+        this.rechargeBarFill.clear();
+        this.rechargeBarFill.fillStyle(this.colour);
+        const fillWidth = 100 * percent;
+        this.rechargeBarFill.fillRect(this.x, this.y, fillWidth*6, 10);
+    }
+    destroy() {
+        this.icon.destroy();
+        this.rechargeBar.destroy();
+        this.rechargeBarFill.destroy();
+    }
+}
+
 class StageManager {
     constructor(scene) {
         this.scene = scene;
         this.readyForNextStage = true;
-        // this.stageX = [default, orange, blue, rainbow, asteroid] enemy types
+        // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([5, 2, 1, 1, 5]);
-        this.stages.push([10, 6, 5, 1, 20]);
+        this.stages.push([0, 0, 0, 0, 0, 1]);
+        this.stages.push([5, 2, 1, 1, 5, 0]);
+        this.stages.push([10, 6, 5, 1, 20, 0]);
         
         this.currentStage = 0;
     }
@@ -1126,10 +1221,6 @@ class StageManager {
         this.backgroundfx2.brightness(0.9);
     }
     stageAction() {
-        if (this.currentStage == this.stages.length) {
-            //this.scene.displayTooltip(`PREPARE FOR BOSS...`, true);
-            return;
-        }
         if (!this.readyForNextStage) {return;}
         //this.scene.displayTooltip(`stage ${this.currentStage + 1} begin!`, true);
         const sum = this.stages[this.currentStage].reduce((accumulator, currentValue) => accumulator + currentValue, 0);
@@ -1144,7 +1235,7 @@ class StageManager {
         }
         const lottery = Math.random();
         let combinedTickets = 0;
-        for (let i=0; i<5; i++) {
+        for (let i=0; i<6; i++) {
             let currentRoundTickets = this.stages[this.currentStage][i]/sum;
             combinedTickets += currentRoundTickets;
             if (lottery <= combinedTickets) {
@@ -1165,6 +1256,8 @@ class StageManager {
             this.scene.spawnEnemySomewhere(this.scene.rainbowEnemyGroup);
         } else if (index == 4) {
             this.scene.asteroidGroup.fireLaser();
+        } else if (index == 5) {
+            this.scene.spawnBoss();
         } 
     }
     checkActiveEnemies() {
@@ -1172,6 +1265,7 @@ class StageManager {
         if (this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup)) {return true;}
         if (this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup)) {return true;}
         if (this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup)) {return true;}
+        if (this.scene.boss && this.scene.boss.active) {return true;}
         return false;
     }
     iterateOverEnemyTypeGroup(group) {
@@ -1216,6 +1310,7 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
         this.load.image('blackHoleIcon', 'assets/images/BlackholeIcon.png');
         this.load.image('laserBeamIcon', 'assets/images/laserBeamIcon.png');
+        this.load.image('skullIcon', 'assets/images/skull-icon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
             frameHeight: 16,
@@ -1316,6 +1411,7 @@ export class PlayScene extends Phaser.Scene{
         this.orangeEnemyGroup = new EnemyGroup(this, 'orangeEnemy', OrangeEnemy);
         this.blueEnemyGroup = new EnemyGroup(this, 'blueEnemy', BlueEnemy);
         this.rainbowEnemyGroup = new EnemyGroup(this, 'rainbowEnemy', RainbowEnemy);
+        this.boss;
 
         this.scrapGroup = new WeaponGroup(this, 'scrap', Scrap);
         this.healthKitGroup = new WeaponGroup(this, 'healthkit', HealthKit);
@@ -1366,7 +1462,7 @@ export class PlayScene extends Phaser.Scene{
         });
         menuButton.on("pointerup", () => {
             dropLoop.stop();
-            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
+            //this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
 
         this.input.on('pointermove', pointer => {
@@ -1400,7 +1496,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary("laserBeam")
+        this.changeSecondary("bomb")
 
         this.anims.create({
             key: 'shopAnimation',
@@ -1411,6 +1507,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     update() {
+        if (!this.checkPlayerAlive()) {return;}
         if (this.mouse1down && this.laserReady) {
             this.laserReady = false;
             this.time.addEvent({
@@ -1438,34 +1535,31 @@ export class PlayScene extends Phaser.Scene{
         }
         this.angleShipToMouse();
         this.moveBackground(this.background, this.backgroundSpeed);
-        if (this.checkPlayerAlive()) {
-            this.playerMove();
-            const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
-            const shipSecondary = this.ship.getSecondary();
-            if (this.mouse2down || this.keyE.isDown) {
-                if (shipSecondary == 'bomb') {
-                    this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
-                } else if (shipSecondary == 'laserBeam') {
-                    const offsetX = Math.cos(shipAngleRad) * 1080;
-                    const offsetY = Math.sin(shipAngleRad) * 1080;
-                    this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
-                } else if (shipSecondary == 'rocket') {
-                    this.shootWeaponByGroup(this.rocketGroup);
-                }
+        this.playerMove();
+        const shipAngleRad = Phaser.Math.DegToRad(this.ship.getAngle());
+        const shipSecondary = this.ship.getSecondary();
+        if (this.mouse2down || this.keyE.isDown) {
+            if (shipSecondary == 'bomb') {
+                this.bomb.fire(this.ship.x, this.ship.y, shipAngleRad, this.ship.body.velocity.x, this.ship.body.velocity.y);
+            } else if (shipSecondary == 'laserBeam') {
+                const offsetX = Math.cos(shipAngleRad) * 1080;
+                const offsetY = Math.sin(shipAngleRad) * 1080;
+                this.beamLaser.fire(this.ship.x + offsetX, this.ship.y + offsetY, shipAngleRad, this.ship);
+            } else if (shipSecondary == 'rocket') {
+                this.shootWeaponByGroup(this.rocketGroup);
             }
-            if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
-                if (shipSecondary == 'laserBeam') {
-                    this.beamLaser.stopFiring();
-                }
+        }
+        if (Phaser.Input.Keyboard.JustUp(this.keyE)) {
+            if (shipSecondary == 'laserBeam') {
+                this.beamLaser.stopFiring();
             }
-            if (this.keySpace.isDown || this.keyShift.isDown) {
-                if (this.ship.getDodgeReady()) {
-                    this.ship.setDodgeReady(false);
-                    this.dodgeRoll();
-                }
+        }
+        if (this.keySpace.isDown || this.keyShift.isDown) {
+            if (this.ship.getDodgeReady()) {
+                this.ship.setDodgeReady(false);
+                this.dodgeRoll();
             }
-            
-        };
+        }
     }
 
     changeSecondary(secondary) {
@@ -1552,7 +1646,7 @@ export class PlayScene extends Phaser.Scene{
                 }
             });
         }
-        
+
     }
 
     checkPlayerAlive() {
@@ -1966,5 +2060,11 @@ export class PlayScene extends Phaser.Scene{
             this.displayTooltip("", false);
             this.displayUpgradeStatTooltip("", false);
         });
+    }
+
+    spawnBoss() {
+        this.boss = new Boss(this, this.game.renderer.width/2, this.game.renderer.height/2, "enemy");
+        this.boss.spawn(this.game.renderer.width / 2, this.game.renderer.height / 2, this.ship, this.laserGroupRed);
+        this.bossHealthBar = new BossHealthBar(this, 350, this.game.renderer.height*0.8, 'skullIcon', '0xff0010');
     }
 }
