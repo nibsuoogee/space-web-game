@@ -259,8 +259,44 @@ class Boss extends Enemy {
         super(scene, x, y, sprite);
         this.setActive(false);
         this.setVisible(false);
-        this.maxHealth = 5000;
+        this.maxHealth = 400;
         this.setScale(3,3);
+    }
+    checkHealth() {
+        if (this.health <= 0) {
+            this.scene.bossHealthBar.destroy();
+            this.displayParticles('deathFireParticle');
+            this.spawnScrap();
+            this.setActive(false);
+            this.setVisible(false);
+            this.scene.addPlayersPoints(10);
+        } else {
+            this.healthText.setVisible(false);
+            this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
+        }
+    }
+    checkMovement() {return;} //disable inherited movement
+    spawnScrap() {
+        const deathX = this.x;
+        const deathY = this.y;
+        this.scene.time.addEvent({
+            delay: 300,
+            callback: () => {
+                this.scene.scrapGroup.fireLaser(deathX + (Math.random()*200)-100, deathY + (Math.random()*200)-100, 0);
+            },
+            callbackScope: this,
+            repeat: 10,
+
+        });
+        this.scene.time.addEvent({
+            delay: 8000,
+            callback: () => {
+                console.log("destroyed!")
+                this.destroy();
+            },
+            callbackScope: this,
+            repeat: false,
+        });
     }
 }
 
@@ -1133,6 +1169,36 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
+class BossHealthBar extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, icon, colour) {
+        super(scene, x, y);
+        scene.add.existing(this);
+        this.setActive(true);
+        this.setVisible(true);
+        this.percent = 1;
+        this.icon = this.scene.add.sprite(x+5, y - 20, icon).setDepth(2);;
+        this.colour = colour;
+        this.rechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
+        this.rechargeBar.fillRect(x, y, 600, 10);
+        this.rechargeBarFill = this.scene.add.graphics();
+        this.rechargeBarFill.fillStyle(colour);
+        this.rechargeBarFill.setDepth(5);
+        this.rechargeBarFill.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
+        this.setPercent(this.percent);
+    }
+    setPercent(percent) {
+        this.rechargeBarFill.clear();
+        this.rechargeBarFill.fillStyle(this.colour);
+        const fillWidth = 100 * percent;
+        this.rechargeBarFill.fillRect(this.x, this.y, fillWidth*6, 10);
+    }
+    destroy() {
+        this.icon.destroy();
+        this.rechargeBar.destroy();
+        this.rechargeBarFill.destroy();
+    }
+}
+
 class StageManager {
     constructor(scene) {
         this.scene = scene;
@@ -1140,9 +1206,8 @@ class StageManager {
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
         this.stages.push([0, 0, 0, 0, 0, 1]);
-        //this.stages.push([5, 2, 1, 1, 5, 0]);
-        //this.stages.push([10, 6, 5, 1, 20]);
-        this.stages.push([0, 0, 0, 0, 40, 0]); //boss and asteroids
+        this.stages.push([5, 2, 1, 1, 5, 0]);
+        this.stages.push([10, 6, 5, 1, 20, 0]);
         
         this.currentStage = 0;
     }
@@ -1168,7 +1233,7 @@ class StageManager {
         }
         const lottery = Math.random();
         let combinedTickets = 0;
-        for (let i=0; i<5; i++) {
+        for (let i=0; i<6; i++) {
             let currentRoundTickets = this.stages[this.currentStage][i]/sum;
             combinedTickets += currentRoundTickets;
             if (lottery <= combinedTickets) {
@@ -1198,6 +1263,7 @@ class StageManager {
         if (this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup)) {return true;}
         if (this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup)) {return true;}
         if (this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup)) {return true;}
+        if (this.scene.boss && this.scene.boss.active) {return true;}
         return false;
     }
     iterateOverEnemyTypeGroup(group) {
@@ -1242,6 +1308,7 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
         this.load.image('blackHoleIcon', 'assets/images/black-hole-icon.png');
         this.load.image('laserBeamIcon', 'assets/images/laser-beam-icon.png');
+        this.load.image('skullIcon', 'assets/images/skull-icon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
             frameHeight: 16,
@@ -1490,7 +1557,6 @@ export class PlayScene extends Phaser.Scene{
     }
 
     changeSecondary(secondary) {
-        this.spawnBoss();
         this.ship.setSecondary(secondary);
         let icon = '';
         let colour = '';
@@ -1974,5 +2040,6 @@ export class PlayScene extends Phaser.Scene{
     spawnBoss() {
         this.boss = new Boss(this, this.game.renderer.width/2, this.game.renderer.height/2, "enemy");
         this.boss.spawn(this.game.renderer.width / 2, this.game.renderer.height / 2, this.ship, this.laserGroupRed);
+        this.bossHealthBar = new BossHealthBar(this, 350, this.game.renderer.height*0.8, 'skullIcon', '0xff0010');
     }
 }
