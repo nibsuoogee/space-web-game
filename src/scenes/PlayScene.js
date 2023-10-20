@@ -1241,7 +1241,7 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 200,
         });
 
-        this.load.image('scrap', "../../assets/images/scrap-simple.png");
+        this.load.image('scrap', "../../assets/images/scrap.png");
         this.load.image('healthkit', "../../assets/images/Healthkit.png");
         this.load.image('heart', "../../assets/images/heart.png");
         this.load.image('dodgeIcon', "../../assets/images/dodge-icon.png");
