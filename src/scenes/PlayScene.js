@@ -809,6 +809,7 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
         this.ship = scene.ship;
         this.postFX.addBloom(0xffff88, 1, 1, 1.5, 0.5);
         this.scrapValue = 25;
+        this.setScale(1);
         this.dragValue = 300;
     }
     fire(x, y, alpha) {
@@ -817,7 +818,7 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(true);
         this.setDepth(1);
         this.body.setDrag(this.dragValue, this.dragValue)
-        const endScale = 1.4;
+        const endScale = this.scale + 0.4;
         const duration = 1500;
         this.scene.tweens.add({
             targets: this,
@@ -855,6 +856,7 @@ class HealthKit extends Scrap {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.healthValue = 100;
+        this.setScale(0.5);
     }
     AbsorbIntoPlayer() {
         this.ship.setHealthDelta(this.healthValue);
@@ -873,7 +875,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         this.health = 50;
         this.kineticDamage = 50;
         this.body.setMass(20)
-        this.postFX.addBloom(0xffffff, 1, 1, 1, 1);
+        this.postFX.addBloom(0xffffff, 2, 2, 1.2, 4);
     }
     fire(x, y, alpha) {
         // spawn at at random y to right of screen
@@ -1212,8 +1214,8 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('blueEnemy', "../../assets/images/BlueEnemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
-        this.load.image('blackHoleIcon', 'assets/images/black-hole-icon.png');
-        this.load.image('laserBeamIcon', 'assets/images/laser-beam-icon.png');
+        this.load.image('blackHoleIcon', 'assets/images/BlackholeIcon.png');
+        this.load.image('laserBeamIcon', 'assets/images/laserBeamIcon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
             frameHeight: 16,
@@ -1231,7 +1233,7 @@ export class PlayScene extends Phaser.Scene{
         this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
             frameWidth: 180,
             frameHeight: 70,
-        });
+        })
         this.load.spritesheet('rainbowEnemy', 'assets/images/GoldenRainbowEnemy.png', {
             frameWidth: 52,
             frameHeight: 59,
@@ -1243,9 +1245,9 @@ export class PlayScene extends Phaser.Scene{
 
         this.load.image('scrap', "../../assets/images/scrap.png");
         this.load.image('healthkit', "../../assets/images/Healthkit.png");
-        this.load.image('heart', "../../assets/images/heart.png");
-        this.load.image('dodgeIcon', "../../assets/images/dodge-icon.png");
-        this.load.image('asteroid', "../../assets/images/asteroid-simple.png");
+        this.load.image('heart', "../../assets/images/HealthIcon.png");
+        this.load.image('dodgeIcon', "../../assets/images/dodgeIcon.png");
+        this.load.image('asteroid', "../../assets/images/asteroid.png");
         this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
@@ -1318,34 +1320,38 @@ export class PlayScene extends Phaser.Scene{
         this.scrapGroup = new WeaponGroup(this, 'scrap', Scrap);
         this.healthKitGroup = new WeaponGroup(this, 'healthkit', HealthKit);
         this.asteroidGroup = new WeaponGroup(this, 'asteroid', Asteroid);
-        
-        this.healthPercent = this.add.bitmapText(40, this.game.renderer.height * 0.95, 'atari-classic', 'init', 20).setDepth(2).setTint('0xff0024');
-        this.healthPercent.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
-        this.healthRechargeBar = new RechargeBar(this, 80, this.game.renderer.height*0.8, 'heart', '0xff0024');
-        this.dodgeRechargeBar = new RechargeBar(this, 120, this.game.renderer.height*0.8, 'dodgeIcon', '0xccccff');
+
+        //charge bars
+        this.healthRechargeBar = new RechargeBar(this, 20, this.game.renderer.height*0.86, 'heart', '0xff0024');
+        this.dodgeRechargeBar = new RechargeBar(this, 55, this.game.renderer.height*0.86, 'dodgeIcon', '0xccccff');
 
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
         this.background.preFX.addBarrel(0.5);
 
+        //menu
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
         let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
 
-        this.scoreCounter = this.add.bitmapText(this.game.renderer.width -300, this.game.renderer.height * 0.95, 'atari-classic', '0 pts', 20).setDepth(2);
-        this.scrapCounter = this.add.bitmapText(this.game.renderer.width -600, this.game.renderer.height * 0.95, 'atari-classic', '0', 20).setDepth(2);
-        this.scrapIcon = this.add.image(this.game.renderer.width -630, this.game.renderer.height * 0.96, "scrap").setDepth(2);
+        //score and scrap counter
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 800, 'atari-classic', 'pts: 0', 20).setDepth(2);
+        this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
+        this.scrapIcon = this.add.image(this.game.renderer.width - 390, this.game.renderer.height - 64, "scrap").setDepth(2).setVisible(false);
         this.tooltipText = this.add.bitmapText(100, this.game.renderer.height * 0.5, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
 
-        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 - 40, 'atari-classic', 'DMG', 15).setVisible(true).setDepth(2);
-        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 - 20, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);
-        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2, 'atari-classic', 'FR', 15).setVisible(true).setDepth(2);
-        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 + 20, 'atari-classic', 'HCD', 15).setVisible(true).setDepth(2);
-        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height /2 + 40, 'atari-classic', 'FS', 15).setVisible(true).setDepth(2);
+        //ship stats
+        this.healthPercent = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 120, 'atari-classic', 'HP', 15).setDepth(2).setTint('0xff0024').setVisible(false);
+        this.hudDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 100, 'atari-classic', 'DMG', 15).setVisible(false).setDepth(2);
+        this.hudFireRateStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 80, 'atari-classic', 'FR', 15).setVisible(false).setDepth(2);
+        this.hudBulletSpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 60, 'atari-classic', 'FR', 15).setVisible(false).setDepth(2);
+        this.hudHullCollisionDamageStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 40, 'atari-classic', 'HCD', 15).setVisible(false).setDepth(2);
+        this.hudFlySpeedStat = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 20, 'atari-classic', 'FS', 15).setVisible(false).setDepth(2);
+        this.healthPercent.postFX.addBloom(0xffffff, 0.5, 0.5, 2, 1, 4);
         
         this.greenUpgradeStat = this.add.bitmapText(this.game.renderer.width - 60, this.game.renderer.height /2 - 40, 'atari-classic', '+10', 15).setVisible(false).setDepth(2).setTint('0x00ff00');
         this.greenUpgradeStat.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
 
-        this.redUpgradeCost = this.add.bitmapText(this.game.renderer.width -600, this.game.renderer.height * 0.91, 'atari-classic', '+10', 18).setVisible(false).setDepth(2).setTint('0xff0000');
+        this.redUpgradeCost = this.add.bitmapText(this.game.renderer.width -370, this.game.renderer.height -50, 'atari-classic', '+10', 20).setVisible(false).setDepth(2).setTint('0xff0000');
         this.redUpgradeCost.postFX.addBloom(0xffffff, 0.25, 0.25, 1, 1, 4);
 
         this.updateHudStatValues();
@@ -1479,7 +1485,7 @@ export class PlayScene extends Phaser.Scene{
         if (this.secondaryRechargeBar) {
             this.secondaryRechargeBar.destroy();
         }
-        this.secondaryRechargeBar = new RechargeBar(this, 160, this.game.renderer.height*0.8, icon, colour);
+        this.secondaryRechargeBar = new RechargeBar(this, 90, this.game.renderer.height*0.86, icon, colour);
         this.shopPurchase.play();
     }
 
@@ -1551,7 +1557,7 @@ export class PlayScene extends Phaser.Scene{
 
     checkPlayerAlive() {
         const health = this.ship.getHealth();
-        this.healthPercent.setText(`${Math.round(health)}%`);
+        this.healthPercent.setText(`HP: ${Math.round(health)}%`);
         if (health <= 0) {
             if (!this.playerDeathHasPlayed) {
                 this.playerDeath();
@@ -1564,7 +1570,7 @@ export class PlayScene extends Phaser.Scene{
 
     addPlayersPoints(points) {
         this.ship.setPointsDelta(points);
-        this.scoreCounter.setText(`${this.ship.getPoints()} pts`);
+        this.scoreCounter.setText(`pts: ${this.ship.getPoints()}`);
     }
 
     addPlayersScrap(scrap) {
@@ -1682,22 +1688,22 @@ export class PlayScene extends Phaser.Scene{
         this.greenUpgradeStat.setText(`+${10}`);
         this.redUpgradeCost.setText(`-${150}`);
         if (item == "EngineUpgrade") {
-            this.greenUpgradeStat.y = this.game.renderer.height /2 + 40
+            this.greenUpgradeStat.y = this.game.renderer.height - 20;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "HealthUpgrade") {
-            this.greenUpgradeStat.y = this.game.renderer.height * 0.955;
-            this.greenUpgradeStat.x = 160;
+            this.greenUpgradeStat.y = this.game.renderer.height - 120;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "FireRateUpgrade") {
-            this.greenUpgradeStat.y = this.game.renderer.height /2 - 20;
+            this.greenUpgradeStat.y = this.game.renderer.height - 80;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "DamageUpgrade") {
-            this.greenUpgradeStat.y = this.game.renderer.height /2 - 40;
+            this.greenUpgradeStat.y = this.game.renderer.height - 100;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "Repair") {
-            this.greenUpgradeStat.y = this.game.renderer.height * 0.955;
-            this.greenUpgradeStat.x = 160;
+            this.greenUpgradeStat.y = this.game.renderer.height - 120;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
             const healthDelta = this.ship.getMaxHealth() - this.ship.getHealth();
-            this.greenUpgradeStat.setText(`+${healthDelta}%`);
+            this.greenUpgradeStat.setText(`+${Math.round(healthDelta)}%`);
             this.redUpgradeCost.setText(`-${Math.round(healthDelta * 0.2)}`);
         } else if (item == "Exit") {
             this.greenUpgradeStat.setText("");
@@ -1774,6 +1780,15 @@ export class PlayScene extends Phaser.Scene{
             this.repairHammer.play();
             this.repairDrill.play();
         } else if (purchase == "Exit") {
+            this.scrapCounter.setVisible(false);
+            this.scrapIcon.setVisible(false);
+            this.healthPercent.setVisible(false);
+            this.hudDamageStat.setVisible(false);
+            this.hudFireRateStat.setVisible(false);
+            this.hudBulletSpeedStat.setVisible(false);
+            this.hudHullCollisionDamageStat.setVisible(false);
+            this.hudFlySpeedStat.setVisible(false);
+
             this.shopSlideOut(this.shopImage);
             this.slideOutTweenButtons(this.buttons);
             this.stageManager.setReadyForNextStage(true);
@@ -1817,6 +1832,16 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shopSlideIn(Attributes, randomWeapon){
+
+        this.scrapCounter.setVisible(true);
+        this.scrapIcon.setVisible(true);
+        this.healthPercent.setVisible(true);
+        this.hudDamageStat.setVisible(true);
+        this.hudFireRateStat.setVisible(true);
+        this.hudBulletSpeedStat.setVisible(true);
+        this.hudHullCollisionDamageStat.setVisible(true);
+        this.hudFlySpeedStat.setVisible(true);
+
         this.backgroundSpeed = 0.2;
         this.dropLoop.stop();
         this.shopIntro.play();
