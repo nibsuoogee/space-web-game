@@ -203,8 +203,9 @@ class RainbowEnemy extends Enemy {
         this.postFX.addBloom(0xfcf9f2, 1, 1, 1.5, 1, 4);
         this.maxHealth = 300
         this.bulletSpeed = 700;
-        this.flySpeed = 1200;
+        this.flySpeed = 1800;
         this.bulletDamage = 10;
+        this.moveForTime = 400;
         this.anims.create({
             key: 'RainbowAnimation',
             frames: this.anims.generateFrameNumbers('rainbowEnemy', {
@@ -254,12 +255,13 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
     }
 }
 
-class Boss extends Enemy {
+class Boss extends BlueEnemy {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.setActive(false);
         this.setVisible(false);
         this.maxHealth = 400;
+        this.bulletDamage = 300;
         this.setScale(3,3);
     }
     checkHealth() {
@@ -374,6 +376,7 @@ class Rocket extends Laser {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.projectileSpeed = 900;
+        this.autoDetonationFuse = 7000;
         this.dragValue = 1000;
         this.hasHit = false;
         this.enemy;
@@ -394,6 +397,14 @@ class Rocket extends Laser {
         this.scene.rocketWeapon.play();
         this.lockedOnEnemy = undefined;
         this.play('rocketAnimation');
+        this.setAccelerationX((this.projectileSpeed * 0.2) * Math.cos(alpha))
+        this.setAccelerationY((this.projectileSpeed * 0.2) * Math.sin(alpha))
+    }
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        if (this.enemy && !this.enemy.visible) {
+            this.lockedOnEnemy = undefined;
+        }
     }
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
@@ -415,8 +426,8 @@ class Rocket extends Laser {
         const angle = angleToEnemy;
         this.angle = Phaser.Math.RadToDeg(angleToEnemy);
         if (distToEnemy > 0) {
-            this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 50) * Math.cos(angle))
-            this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 50) * Math.sin(angle))
+            this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 200) * Math.cos(angle))
+            this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 200) * Math.sin(angle))
         }
         
     }
@@ -564,12 +575,13 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
                     this.scene.physics.world.overlap(circle, this.ship, this.laserHitsShip, null, this);
                 } else {
                     this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
+                    this.scene.physics.world.overlap(circle, this.scene.boss, this.laserHitsBoss, null, this);
                 }
                 this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
                 this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
                 this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
                 this.iterateOverEnemyTypeGroup(this.scene.asteroidGroup)
-                this.scene.physics.world.overlap(circle, this.scene.boss, this.laserHitsBoss, null, this);
+                
             }
         }
     }
@@ -1105,12 +1117,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setHullCollisionDamageDelta(delta) {this.hullCollisionDamage += delta;}
     setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
     preUpdate() {
-        /*
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
-        */
+        
     }
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
@@ -1142,16 +1153,17 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 }
 
 class RechargeBar extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, icon, colour) {
+    constructor(scene, x, y, icon, colour, extraHeight) {
         super(scene, x, y);
         scene.add.existing(this);
         this.setActive(true);
         this.setVisible(true);
         this.percent = 1;
-        this.icon = this.scene.add.sprite(x+5, y - 20, icon).setDepth(2);;
+        this.extraHeight = extraHeight !== undefined ? extraHeight : 0;
+        this.icon = this.scene.add.sprite(x+5, y - 20 - this.extraHeight, icon).setDepth(2);
         this.colour = colour;
         this.rechargeBar = this.scene.add.graphics({fillStyle: {color: 0x111111} });
-        this.rechargeBar.fillRect(x, y, 10, 100);
+        this.rechargeBar.fillRect(x, y-this.extraHeight, 10, 100+this.extraHeight);
         this.rechargeBarFill = this.scene.add.graphics();
         this.rechargeBarFill.fillStyle(colour);
         this.rechargeBarFill.setDepth(5);
@@ -1161,7 +1173,7 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
     setPercent(percent) {
         this.rechargeBarFill.clear();
         this.rechargeBarFill.fillStyle(this.colour);
-        const fillHeight = 100 * percent;
+        const fillHeight = (100+this.extraHeight) * percent;
         this.rechargeBarFill.fillRect(this.x, this.y+100, 10, -fillHeight);
     }
     destroy() {
@@ -1418,7 +1430,7 @@ export class PlayScene extends Phaser.Scene{
         this.asteroidGroup = new WeaponGroup(this, 'asteroid', Asteroid);
 
         //charge bars
-        this.healthRechargeBar = new RechargeBar(this, 20, this.game.renderer.height*0.86, 'heart', '0xff0024');
+        this.healthRechargeBar = new RechargeBar(this, 20, this.game.renderer.height*0.86, 'heart', '0xff0024', 200);
         this.dodgeRechargeBar = new RechargeBar(this, 55, this.game.renderer.height*0.86, 'dodgeIcon', '0xccccff');
 
         this.sound.volume = 0.05;
@@ -1496,7 +1508,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary("bomb")
+        this.changeSecondary("laserBeam")
 
         this.anims.create({
             key: 'shopAnimation',
