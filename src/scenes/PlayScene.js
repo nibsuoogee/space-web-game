@@ -355,6 +355,7 @@ class Boss extends BlueEnemy {
             this.setActive(false);
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
+            this.scene.bossNameText.setVisible(false);
         } else {
             this.healthText.setVisible(false);
             this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
@@ -1018,7 +1019,8 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
         this.ship = scene.ship;
         this.postFX.addBloom(0xffff88, 1, 1, 1.5, 0.5);
         this.scrapValue = 25;
-        this.setScale(1);
+        this.maxScale = 1;
+        this.setScale(this.maxScale);
         this.dragValue = 300;
     }
     fire(x, y, alpha) {
@@ -1027,8 +1029,8 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
         this.setVisible(true);
         this.setDepth(1);
         this.body.setDrag(this.dragValue, this.dragValue)
-        const endScale = this.scale + 0.4;
-        const duration = 1500;
+        const endScale = this.maxScale + 0.3;
+        const duration = 1000;
         this.scene.tweens.add({
             targets: this,
             scaleX: endScale,
@@ -1065,7 +1067,8 @@ class HealthKit extends Scrap {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.healthValue = 100;
-        this.setScale(0.5);
+        this.maxScale = 0.5;
+        this.setScale(this.maxScale);
     }
     AbsorbIntoPlayer() {
         this.ship.setHealthDelta(this.healthValue);
@@ -1084,7 +1087,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         this.health = 50;
         this.kineticDamage = 50;
         this.body.setMass(20)
-        this.postFX.addBloom(0xffffff, 2, 2, 1.2, 4);
+        this.postFX.addBloom(0xffffff, 1, 1, 1, 4, 8);
     }
     fire(x, y, alpha) {
         // spawn at at random y to right of screen
@@ -1581,6 +1584,7 @@ export class PlayScene extends Phaser.Scene{
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
         this.scrapIcon = this.add.image(this.game.renderer.width - 390, this.game.renderer.height - 64, "scrap").setDepth(2).setVisible(false);
         this.tooltipText = this.add.bitmapText(100, this.game.renderer.height * 0.5, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
+        this.bossNameText = this.add.bitmapText(500, this.game.renderer.height*0.87, 'atari-classic', 'Boss name', 16).setVisible(false).setDepth(2).setTint('0x220000');
 
         //ship stats
         this.healthPercent = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 120, 'atari-classic', 'HP', 15).setDepth(2).setTint('0xff0024').setVisible(false);
@@ -2211,6 +2215,8 @@ export class PlayScene extends Phaser.Scene{
     spawnBoss() {
         this.boss = new Boss(this, 0, 0, "enemy");
         this.boss.spawn(this.game.renderer.width /2, 100, this.ship, this.laserGroupRed);
-        this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xff0010');
+        this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xbb0000');
+        this.bossNameText.setText("B.B.W. (Big Beautiful Warship)");
+        this.bossNameText.setVisible(true);
     }
 }
