@@ -403,6 +403,15 @@ class Boss extends BlueEnemy {
     }
 }
 
+class BossPunch extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, sprite) {
+        super(scene, x, y, sprite);
+        scene.add.existing(this);
+        /*asdf*/
+    }
+    
+}
+
 // Laser class based on CodeCaptain's https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
 class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite) {
@@ -1553,6 +1562,7 @@ export class PlayScene extends Phaser.Scene{
         this.laserGroupRed = new WeaponGroup(this, 'laserRed', Laser);
         this.rocketGroup = new RocketGroup(this, 'rocket', Rocket);
         this.bossRocketGroup = new RocketGroup(this, 'rocket', Rocket);
+        //this.bossPunch = new BossPunch(this, 0, 0, "nyrkkispraitti");
 
         this.beamLaser = new BeamLaser(this, 0, 0, 'beamLaser', false);
         this.enemyBeamLaser = new BeamLaser(this, 0, 0, 'beamLaserRed', true);
