@@ -1350,6 +1350,11 @@ export class PlayScene extends Phaser.Scene{
             frameHeight: 200,
         });
 
+        this.load.spritesheet('Boss', "../../assets/images/FinalBoss.png",{
+            frameWidth: 438,
+            frameHeight: 175,
+        });
+
         this.load.image('scrap', "../../assets/images/scrap.png");
         this.load.image('healthkit', "../../assets/images/Healthkit.png");
         this.load.image('heart', "../../assets/images/HealthIcon.png");
@@ -1391,6 +1396,8 @@ export class PlayScene extends Phaser.Scene{
 
     create() {
         this.addShip();
+        let bossImage = this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.30, "Boss").setDepth(2).setScale(3,2.5);
+        bossImage.setFrame(0);
 
         this.zapGun1 = this.sound.add("zap_gun_1", {volume: 0.6})
         this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
