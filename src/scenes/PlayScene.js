@@ -1206,6 +1206,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             }],
             frameRate: 20,
         });
+        
+        this.enemyDamageMultiplier = 1.0;
     }
     setSecondary(secondary) {this.secondary = secondary;}
     setInvincible(active) {this.invincible = active;}
@@ -1223,7 +1225,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.health + delta > this.maxHealth) {
             this.health = this.maxHealth;
         } else {
-            this.health += delta; 
+            if (delta < 0) {
+                this.health += delta * this.enemyDamageMultiplier;
+            } else {
+                this.health += delta; 
+            }
         }
         this.updateHealthBar();
     }
@@ -1261,6 +1267,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setFlySpeedDelta(delta) {this.flySpeed += delta;}
     setHullCollisionDamageDelta(delta) {this.hullCollisionDamage += delta;}
     setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
+    setEnemyDamageMultiplierDelta(delta) {this.enemyDamageMultiplier += delta};
     preUpdate() {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -1364,11 +1371,11 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([1, 1, 0, 0, 2, 1]);
-        this.stages.push([5, 2, 1, 1, 5, 0]);
-        this.stages.push([10, 6, 5, 1, 20, 0]);
-        
+        this.stages.push([0, 0, 0, 0, 0, 1]);
+        this.stages.push([1, 0, 0, 0, 0, 0]);
+        //this.stages.push([, 6, 5, 1, 20, 0]);
         this.currentStage = 0;
+        this.currentStageCopy = [...this.stages[this.currentStage]];
     }
     setReadyForNextStage(active) {
         this.readyForNextStage = active;
@@ -1380,24 +1387,31 @@ class StageManager {
     stageAction() {
         if (!this.readyForNextStage) {return;}
         //this.scene.displayTooltip(`stage ${this.currentStage + 1} begin!`, true);
-        const sum = this.stages[this.currentStage].reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        const sum = this.currentStageCopy.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
         if (sum < 1) {
             if (!this.checkActiveEnemies()) {
                 //this.scene.displayTooltip("stage win!", true);
                 this.readyForNextStage = false;
                 this.scene.onTimerComplete();
                 this.currentStage += 1;
+                if (this.currentStage === this.stages.length) {
+                    console.log("new game")
+                    this.currentStage = 0; // new game+
+                    this.scene.globalEnemyDamageIncrease();
+                    this.scene.globalEnemyHealthIncrease();
+                }
+                this.currentStageCopy = [...this.stages[this.currentStage]];
                 return;
             }  
         }
         const lottery = Math.random();
         let combinedTickets = 0;
         for (let i=0; i<6; i++) {
-            let currentRoundTickets = this.stages[this.currentStage][i]/sum;
+            let currentRoundTickets = this.currentStageCopy[i]/sum;
             combinedTickets += currentRoundTickets;
             if (lottery <= combinedTickets) {
                 this.spawnByIndex(i);
-                this.stages[this.currentStage][i] -= 1;
+                this.currentStageCopy[i] -= 1;
                 break;
             }
         }
@@ -2228,5 +2242,13 @@ export class PlayScene extends Phaser.Scene{
         this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xbb0000');
         this.bossNameText.setText("B.B.W. (Big Beautiful Warship)");
         this.bossNameText.setVisible(true);
+    }
+
+    globalEnemyDamageIncrease() {
+        this.ship.setEnemyDamageMultiplierDelta(1);
+    }
+
+    globalEnemyHealthIncrease() {
+
     }
 }
