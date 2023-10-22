@@ -62,7 +62,6 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         //this.enemy.setHealthDelta(-this.bulletDamage/500);
         this.setHealthDelta(-0.001);
         //this.scene.displayTooltip("laserHitsEnemy()", true);
-        console.log("laserHitsEnemy()")
     }
 
     checkMovement() {
@@ -87,7 +86,6 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.spawnScrap();
             this.setActive(false);
             this.setVisible(false);
-            this.scene.addPlayersPoints(10);
             this.healthText.setVisible(false);
         } else {
             this.healthText.setPosition(this.x - 20, this.y - 50);
@@ -265,8 +263,8 @@ class Boss extends BlueEnemy {
         scene.add.existing(this.bossAnimation);
         this.setActive(false);
         this.setVisible(false);
-        this.maxHealth = 400;
-        this.bulletDamage = 10;
+        this.maxHealth = 4000;
+        this.bulletDamage = 20;
         this.weaponCycleDelay = 4000;
         this.weaponCycleReady = true;
         this.timeSinceShot = 8;
@@ -309,7 +307,6 @@ class Boss extends BlueEnemy {
                 delay: this.weaponCycleDelay,
                 callback: () => {
                     if (this && this.active) {
-                        console.log(this.currentWeapon)
                         this.cycleRandomWeapon();
                         this.weaponCycleReady = true;
                     }
@@ -365,7 +362,6 @@ class Boss extends BlueEnemy {
             this.spawnScrap();
             this.setActive(false);
             this.setVisible(false);
-            this.scene.addPlayersPoints(10);
             this.scene.bossNameText.setVisible(false);
             this.bossAnimation.destroy();
         } else {
@@ -387,7 +383,6 @@ class Boss extends BlueEnemy {
         this.scene.time.addEvent({
             delay: 8000,
             callback: () => {
-                console.log("destroyed!")
                 this.destroy();
             },
             callbackScope: this,
@@ -427,7 +422,7 @@ class BossPunch extends Phaser.Physics.Arcade.Sprite {
     
 }
 
-// Laser class based on CodeCaptain's https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
+// Laser class originally based on CodeCaptain's https://www.youtube.com/watch?v=9wvlAzKseCo&t=510s
 class Laser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
@@ -835,7 +830,6 @@ class Bomb extends Phaser.Physics.Arcade.Sprite {
                 this.scene.setSecondaryPercent(percent);
             }, incrementInterval);
             this.hasHit = false;
-            console.log("dropped a bomb");            
             this.body.reset(x,y);
             this.setScale(5,5)
             this.setBodySize(20, 20, true);
@@ -999,11 +993,9 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
             clearInterval(this.timer);
         }
         if (shooter === this.scene.ship) {
-            console.log("player shot!")
             this.scene.setSecondaryPercent(this.energyPercent);
             this.energyPercent -= this.energyDrain;
         } else {
-            console.log("boss shot!")
             this.energyPercent -= this.energyDrain*0.01;
         }
         
@@ -1230,6 +1222,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         });
         
         this.enemyDamageMultiplier = 1.0;
+        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 100, this.scene.game.renderer.height - 770, 'atari-classic', '1x', 14).setDepth(3);
+        this.gameCompletionsMultiplierText.setTint("0xff0000");
     }
     setSecondary(secondary) {this.secondary = secondary;}
     setInvincible(active) {this.invincible = active;}
@@ -1265,7 +1259,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
     getHealth() {return this.health;}
     getScrap() {return this.scrap;}
-    setScrapDelta(delta) {this.scrap += delta;}
+    setScrapDelta(delta) {
+        this.scrap += delta;
+        if (delta > 0) {
+            this.scene.addPlayersPoints(delta)
+        }
+    }
     getPoints() {return this.points;}
     setPointsDelta(delta) {this.points += delta;}
     getBulletDamage() {return this.bulletDamage;}
@@ -1289,7 +1288,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setFlySpeedDelta(delta) {this.flySpeed += delta;}
     setHullCollisionDamageDelta(delta) {this.hullCollisionDamage += delta;}
     setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
-    setEnemyDamageMultiplierDelta(delta) {this.enemyDamageMultiplier += delta};
+    setEnemyDamageMultiplierDelta(delta) {
+        this.enemyDamageMultiplier += delta
+        this.gameCompletionsMultiplierText.setText(`${this.enemyDamageMultiplier}x`);
+    };
     preUpdate() {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
@@ -1393,9 +1395,11 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([0, 0, 0, 0, 0, 1]);
-        this.stages.push([5, 1, 0, 0, 0, 0]);
-        //this.stages.push([, 6, 5, 1, 20, 0]);
+        this.stages.push([8, 2, 1, 0, 10, 0]);
+        this.stages.push([12, 6, 6, 2, 15, 0]);
+        this.stages.push([20, 6, 15, 3, 20, 0]);
+        this.stages.push([30, 8, 20, 4, 25, 0]);
+        this.stages.push([3, 0, 0, 0, 0, 1]);
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
     }
@@ -1406,10 +1410,11 @@ class StageManager {
         this.backgroundfx2 = this.scene.background.preFX.addColorMatrix();
         this.backgroundfx2.brightness(0.9);
     }
+    getReadyForNextStage() {return this.readyForNextStage;}
     stageAction() {
         if (!this.readyForNextStage) {return;}
         if (this.currentStage+1 === this.stages.length && this.checkActiveEnemies()) {
-            if (Math.random() < 0.2) {
+            if (Math.random() < 0.33) {
                 this.scene.asteroidGroup.fireLaser();
             }      
         }
@@ -1557,7 +1562,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     init(data) {
-        console.log(data);
+
     }
 
     preload() {
@@ -1890,7 +1895,6 @@ export class PlayScene extends Phaser.Scene{
     }
 
     playerDeath() {
-        console.log("YOU DIED!");
         this.dropLoop.stop();
     }
 
@@ -2060,32 +2064,38 @@ export class PlayScene extends Phaser.Scene{
 
     shopBuyItem(purchase){
         if(purchase == "EngineUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setFlySpeedDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "HealthUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setMaxHealthDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "FireRateUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setFireRateDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "DamageUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setBulletDamageDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         }  else if(purchase == "HullCollisionUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setHullCollisionDamageDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "BulletSpeedUpgrade"){
+            if (this.ship.getScrap() < 150) {return;}
             this.ship.setBulletSpeedDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "Repair") {
-            console.log("Repairing");
             const cost = this.ship.getMaxHealth() - this.ship.getHealth();
+            if (this.ship.getScrap() < cost) {return;}
             this.subtractPlayerScrap(Math.round(cost * 0.2));
             this.ship.resetHealth();
             this.repairHammer.play();
@@ -2104,12 +2114,15 @@ export class PlayScene extends Phaser.Scene{
             this.slideOutTweenButtons(this.buttons);
             this.stageManager.setReadyForNextStage(true);
         } else if (purchase == "rocketIcon" && this.ship.secondary !="rocket") {
+            if (this.ship.getScrap() < 1000) {return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("rocket");
         } else if (purchase == "blackHoleIcon" && this.ship.secondary !="bomb") {
+            if (this.ship.getScrap() < 1000) {return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("bomb");
         } else if (purchase == "laserBeamIcon" && this.ship.secondary !="laserBeam") {
+            if (this.ship.getScrap() < 1000) {return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("laserBeam");
         } 
@@ -2143,7 +2156,6 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shopSlideIn(Attributes, randomWeapon){
-
         this.scrapCounter.setVisible(true);
         this.scrapIcon.setVisible(true);
         this.healthPercent.setVisible(true);
