@@ -1,13 +1,21 @@
- import { CST } from "../CST.js";
+import { CST } from "../CST.js";
 export class MenuScene extends Phaser.Scene{
     constructor() {
         super({
             key: CST.SCENES.MENU
         })
+
+        this.menuLoop;
+        this.buildupBar;
+        this.dropLoop;
+
     }
     init(data) {
         console.log(data);
         console.log("I GOT IT!");
+        if(data === "START"){
+            this.onEvent();
+        }
     }
     preload() {
 
@@ -20,21 +28,22 @@ export class MenuScene extends Phaser.Scene{
         let playButton = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text").setDepth(1);
         let playButtonHover = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text_hover").setDepth(1).setVisible(0);
         
-        this.sound.pauseOnBlur = false;
-        let menuLoop = this.sound.add("menu_loop", {
+        this.sound.pauseOnBlur = false;        
+        this.menuLoop = this.sound.add("menu_loop", {
             loop: true,
             volume: 0.5
-        })
+        });
 
+        this.menuLoop.play();
 
-        menuLoop.play();
-        let buildupBar = this.sound.add("buildup-bar", {
+        this.buildupBar = this.sound.add("buildup-bar", {
             volume: 0.6
         });
-        let dropLoop = this.sound.add("drop-loop", {
+
+        this.dropLoop = this.sound.add("drop-loop", {
             loop: true,
             volume: 0.6
-        })
+        });
 
 
         playButton.setInteractive();
@@ -50,17 +59,22 @@ export class MenuScene extends Phaser.Scene{
         });
 
         playButton.on("pointerup", () => {
-            console.log("ENGAGE THEM!");
-            menuLoop.stop();
-            buildupBar.play();
-            buildupBar.on("complete", () => {
-                dropLoop.play();
-            })
-            this.data.set({"dropLoop": dropLoop, "buildupBar": buildupBar});
-            this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
-            //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
+            this.scene.start(CST.SCENES.LORE, "Hello to Play scene from Menu!");
+
         });
 
 
+    }
+
+    onEvent(){
+        console.log("ENGAGE THEM!");
+        this.menuLoop.stop();
+        this.buildupBar.play();
+        this.buildupBar.on("complete", () => {
+            this.dropLoop.play();
+        })
+        this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar});
+        this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
+        //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
     }
 }

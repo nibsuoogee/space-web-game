@@ -104,6 +104,7 @@ export class LoadScene extends Phaser.Scene{
         this.load.image('shopWindow', "../../assets/images/Shop/ShopKeeper.png");
         this.load.image('LeaveShop', "../../assets/images/Shop/LeaveShop.png");
         this.load.image('RepairShip', "../../assets/images/Shop/RepairIcon.png");
+        this.load.image('QuestGiver', "../../assets/images/QuestGiver.png");
 
         this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
         this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
