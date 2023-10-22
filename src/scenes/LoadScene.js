@@ -115,6 +115,10 @@ export class LoadScene extends Phaser.Scene{
         this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
         this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
 
+        this.load.spritesheet('Boss', "../../assets/images/FinalBoss.png",{
+            frameWidth: 438,
+            frameHeight: 175,
+        });
     }
     create() {
         this.scene.start(CST.SCENES.MENU, "Hello from LoadScene!");

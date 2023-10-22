@@ -270,20 +270,24 @@ class Boss extends BlueEnemy {
         this.weaponCycleDelay = 4000;
         this.weaponCycleReady = true;
         this.timeSinceShot = 8;
-        this.currentWeapon = "laserBeam";
+        this.currentWeapon = "rocket";
         this.bossAnimation.BeamAnimation();
         this.laserAngle = 0;
         this.laserAngleSpeed = 0.01;
         this.laserTurningClockwise = true;
-        this.rocketDelay = 300;
+        this.rocketDelay = 200;
         this.rocketReady = true;
-        this.rocketSpawnShoulderIsLeft = true;
+        this.rocketSpawnNumber = 0;
+        this.rocketSpawnOffset = {
+            0: -160,
+            1: 110,
+            2: -110,
+            3: 160
+        }
         //this.setScale(1.5, 1.5);
         this.laserAnimationReady = true;
         this.startAnimation = 1;
-
     }
-
     preUpdate(delta, time) {
         this.setVisible(false);
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
@@ -313,18 +317,17 @@ class Boss extends BlueEnemy {
         }
     }
     laserBeamPreUpdate() {
-        if (this.laserTurningClockwise && this.laserAngle >= 3.14) {
+        if (this.laserTurningClockwise && this.laserAngle >= 3.5) {
             this.laserTurningClockwise = false;
         }
-        if (!this.laserTurningClockwise && this.laserAngle <= 0) {
+        if (!this.laserTurningClockwise && this.laserAngle <= -0.35) {
             this.laserTurningClockwise = true;
         }
-
         this.laserAngle += this.laserTurningClockwise ? this.laserAngleSpeed : -this.laserAngleSpeed;
-        const offsetX = Math.cos(this.laserAngle) * 1080;
-        const offsetY = Math.sin(this.laserAngle) * 1080;
+        const offsetX = Math.cos(this.laserAngle) * 1025;
+        const offsetY = Math.sin(this.laserAngle) * 1025;
         if (this.scene.checkPlayerAlive()) {
-            this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y +20) + offsetY, this.laserAngle, this);
+            this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y+60) + offsetY, this.laserAngle, this);
         }
 
     }
@@ -340,18 +343,13 @@ class Boss extends BlueEnemy {
             repeat: false,
         });
         const rocketSpawnDistance = 50;
-        const angleRad = Phaser.Math.DegToRad(this.angle-90)
+        const angleRad = Phaser.Math.DegToRad(this.angle+90)
         const xOffset = Math.cos(angleRad) * rocketSpawnDistance;
         const yOffset = Math.sin(angleRad) * rocketSpawnDistance;
-        let xShoulderOffset = 0;
-        if (this.rocketSpawnShoulderIsLeft) {
-            this.rocketSpawnShoulderIsLeft = false;
-            xShoulderOffset = -200;
-        } else {
-            this.rocketSpawnShoulderIsLeft = true;
-            xShoulderOffset = 200;
-        }
-        this.scene.bossRocketGroup.fireLaser(this.x + xOffset + xShoulderOffset, this.y + yOffset, angleRad, this);
+        this.rocketSpawnNumber++
+        this.rocketSpawnNumber = this.rocketSpawnNumber === 4 ? 0 : this.rocketSpawnNumber++;
+        const shoulderOffsetX = this.rocketSpawnOffset[this.rocketSpawnNumber];
+        this.scene.bossRocketGroup.fireLaser(this.x + xOffset + shoulderOffsetX, this.y + yOffset - 60, angleRad, this);
     }
     fistPreUpdate() {
 
@@ -499,7 +497,7 @@ class Rocket extends Laser {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.projectileSpeed = 900;
-        this.dragValue = 1000;
+        this.dragValue = 2000;
         this.hasHit = false;
         this.enemy;
         this.lockedOnEnemy = undefined;
@@ -522,8 +520,7 @@ class Rocket extends Laser {
         this.body.setDrag(this.dragValue, this.dragValue)
         this.scene.rocketWeapon.play();
         this.play('rocketAnimation');
-        this.setAccelerationX((this.projectileSpeed * 0.1) * Math.cos(alpha))
-        this.setAccelerationY((this.projectileSpeed * 0.1) * Math.sin(alpha))
+        this.hasHadInitialVelocity = false;
     }
     preUpdate(time, delta) {
         if (this.enemy && !this.enemy.visible) {
@@ -566,12 +563,16 @@ class Rocket extends Laser {
         this.angle = Phaser.Math.RadToDeg(angleToEnemy);
         if (distToEnemy > 0) {
             if (this.lockedOnEnemy === this.scene.ship) {
-                this.setAccelerationX(Math.min((this.projectileSpeed * 100/distToEnemy + 300)) * Math.cos(angle))
-                this.setAccelerationY(Math.min((this.projectileSpeed * 100/distToEnemy + 300)) * Math.sin(angle))
+                if (!this.hasHadInitialVelocity) {
+                    this.hasHadInitialVelocity = true;
+                    this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 200) * Math.cos(angle))
+                    this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 200) * Math.sin(angle))
+                }
+                this.setAccelerationX(Math.min((this.projectileSpeed * 100/distToEnemy + 100)) * Math.cos(angle))
+                this.setAccelerationY(Math.min((this.projectileSpeed * 100/distToEnemy + 100)) * Math.sin(angle))
             } else {
                 this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 200) * Math.cos(angle))
                 this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 200) * Math.sin(angle))
-                
             }
         }
     }
@@ -1384,8 +1385,8 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([1, 1, 2, 3, 2, 1]);
-        this.stages.push([1, 0, 0, 0, 0, 0]);
+        this.stages.push([0, 0, 0, 0, 0, 1]);
+        //this.stages.push([1, 0, 0, 0, 0, 0]);
         //this.stages.push([, 6, 5, 1, 20, 0]);
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
@@ -1399,7 +1400,11 @@ class StageManager {
     }
     stageAction() {
         if (!this.readyForNextStage) {return;}
-        //this.scene.displayTooltip(`stage ${this.currentStage + 1} begin!`, true);
+        if (this.currentStage+1 === this.stages.length && this.checkActiveEnemies()) {
+            if (Math.random() < 0.2) {
+                this.scene.asteroidGroup.fireLaser();
+            }      
+        }
         const sum = this.currentStageCopy.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
         if (sum < 1) {
             if (!this.checkActiveEnemies()) {
@@ -2267,6 +2272,7 @@ export class PlayScene extends Phaser.Scene{
         this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xbb0000');
         this.bossNameText.setText("B.B.W. (Big Beautiful Warship)");
         this.bossNameText.setVisible(true);
+    }
 
     globalEnemyDamageIncrease() {
         this.ship.setEnemyDamageMultiplierDelta(1);
@@ -2275,6 +2281,5 @@ export class PlayScene extends Phaser.Scene{
     globalEnemyHealthIncrease() {
 
     }
-    }
-
+    
 }
