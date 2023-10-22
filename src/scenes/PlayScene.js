@@ -32,7 +32,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.scene.physics.world.enable(this);
         this.setCollideWorldBounds(true);
         this.ship = ship;
-        this.health = this.maxHealth;
+        this.health = this.maxHealth * this.scene.globalEnemyHealthMultiplier;
         this.shipLaserBeam = this.scene.beamLaser;
         this.body.reset(x,y);
         this.displayParticles('spawnFlash');
@@ -263,7 +263,7 @@ class Boss extends BlueEnemy {
         scene.add.existing(this.bossAnimation);
         this.setActive(false);
         this.setVisible(false);
-        this.maxHealth = 4000;
+        this.maxHealth = 4000 * this.scene.globalEnemyHealthMultiplier;
         this.bulletDamage = 20;
         this.weaponCycleDelay = 4000;
         this.weaponCycleReady = true;
@@ -1222,7 +1222,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         });
         
         this.enemyDamageMultiplier = 1.0;
-        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 100, this.scene.game.renderer.height - 770, 'atari-classic', '1x', 14).setDepth(3);
+        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 130, this.scene.game.renderer.height - 770, 'atari-classic', 'ng+ 1x', 18).setDepth(3);
         this.gameCompletionsMultiplierText.setTint("0xff0000");
     }
     setSecondary(secondary) {this.secondary = secondary;}
@@ -1290,7 +1290,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
     setEnemyDamageMultiplierDelta(delta) {
         this.enemyDamageMultiplier += delta
-        this.gameCompletionsMultiplierText.setText(`${this.enemyDamageMultiplier}x`);
+        this.gameCompletionsMultiplierText.setText(`ng+ ${this.enemyDamageMultiplier}x`);
     };
     preUpdate() {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
@@ -1582,6 +1582,7 @@ export class PlayScene extends Phaser.Scene{
 
         this.playerDeathHasPlayed = false;
         this.stageActionReady = true;
+        this.globalEnemyHealthMultiplier = 1.0;
 
         this.addShip();
         this.stageManager = new StageManager(this);
@@ -2294,7 +2295,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     globalEnemyHealthIncrease() {
-
+        this.globalEnemyHealthMultiplier += 1;
     }
     
 }

@@ -35,7 +35,7 @@ export class LoreScene extends Phaser.Scene {
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
         this.menuLoop = this.scene.get("MENU").data.get("menuLoop");
-        this.loreTypingSound = this.sound.add("lore-typing", {volume: 0.6});
+        this.loreTypingSound = this.sound.add("lore-typing", {volume: 0.8});
         this.loreTypingSound.play();
     }
 
