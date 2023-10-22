@@ -4,6 +4,7 @@ import {LoadScene} from "./scenes/LoadScene.js";
 import {MenuScene} from "./scenes/MenuScene.js";
 import {PlayScene} from "./scenes/PlayScene.js";
 import {GameScene} from "./scenes/GameScene.js";
+import {LoreScene} from "./scenes/LoreScene.js";
 let game = new Phaser.Game({
     width: 1920*0.75, 
     height: 1080*0.75, 
@@ -20,7 +21,7 @@ let game = new Phaser.Game({
         }
     },
     scene:[
-        LoadScene, MenuScene, PlayScene, GameScene
+        LoadScene, MenuScene, PlayScene, GameScene, LoreScene
     ]
 });
 
