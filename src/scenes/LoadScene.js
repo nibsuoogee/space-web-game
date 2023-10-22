@@ -43,13 +43,14 @@ export class LoadScene extends Phaser.Scene{
         this.load.audio("laser_damage", "../../assets/sfx/star-fighter-laser-damage-hull.mp3");
         
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
-        this.load.image('enemy', "../../assets/images/enemy.png");
-        this.load.image('orangeEnemy', "../../assets/images/OrangeEnemy.png");
-        this.load.image('blueEnemy', "../../assets/images/BlueEnemy.png");
+        this.load.image('enemy', "../../assets/images/Enemies/enemy.png");
+        this.load.image('orangeEnemy', "../../assets/images/Enemies/OrangeEnemy.png");
+        this.load.image('blueEnemy', "../../assets/images/Enemies/BlueEnemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
-        this.load.image('blackHoleIcon', 'assets/images/BlackholeIcon.png');
-        this.load.image('laserBeamIcon', 'assets/images/laserBeamIcon.png');
+        this.load.image('blackHoleIcon', 'assets/images/Shop/BlackholeIcon.png');
+        this.load.image('laserBeamIcon', 'assets/images/Shop/laserBeamIcon.png');
+        this.load.image('rocketIcon', 'assets/images/Shop/RocketIcon.png');
         this.load.image('skullIcon', 'assets/images/skull-icon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
@@ -65,17 +66,22 @@ export class LoadScene extends Phaser.Scene{
             frameWidth: 40,
             frameHeight: 40,
         });
-        this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
+        this.load.spritesheet('ship', 'assets/images/ShipSprite.png', {
             frameWidth: 180,
             frameHeight: 70,
         })
-        this.load.spritesheet('rainbowEnemy', 'assets/images/GoldenRainbowEnemy.png', {
+        this.load.spritesheet('rainbowEnemy', 'assets/images/Enemies/GoldenRainbowEnemy.png', {
             frameWidth: 52,
             frameHeight: 59,
         });
-        this.load.spritesheet('shop', "../../assets/images/shop.png",{
+        this.load.spritesheet('shop', "../../assets/images/Shop/shop.png",{
             frameWidth: 200,
             frameHeight: 200,
+        });
+
+        this.load.spritesheet('Boss', "../../assets/images/Enemies/FinalBoss.png",{
+            frameWidth: 438,
+            frameHeight: 175,
         });
 
         this.load.image('scrap', "../../assets/images/scrap.png");
@@ -87,14 +93,17 @@ export class LoadScene extends Phaser.Scene{
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
-        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
-        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
-        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
-        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
-        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
-        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
+
+        this.load.image('EngineUpgrade', "../../assets/images/Shop/EngineIcon.png");
+        this.load.image('HealthUpgrade', "../../assets/images/Shop/ShieldIcon.png");
+        this.load.image('FireRateUpgrade', "../../assets/images/Shop/FirerateIcon.png");
+        this.load.image('DamageUpgrade', "../../assets/images/Shop/BulletDamageIcon.png");
+        this.load.image('HullCollisionUpgrade', "../../assets/images/Shop/ThornsIcon1.png");
+        this.load.image('BulletSpeedUpgrade', "../../assets/images/Shop/BulletSpeedIcon.png");
+
+        this.load.image('shopWindow', "../../assets/images/Shop/ShopKeeper.png");
+        this.load.image('LeaveShop', "../../assets/images/Shop/LeaveShop.png");
+        this.load.image('RepairShip', "../../assets/images/Shop/RepairIcon.png");
 
         this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
         this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
@@ -115,12 +124,11 @@ export class LoadScene extends Phaser.Scene{
         this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
         this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
 
-        this.load.spritesheet('Boss', "../../assets/images/FinalBoss.png",{
-            frameWidth: 438,
-            frameHeight: 175,
-        });
     }
     create() {
         this.scene.start(CST.SCENES.MENU, "Hello from LoadScene!");
     }
 }
+
+
+
