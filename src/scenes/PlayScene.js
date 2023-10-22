@@ -525,6 +525,8 @@ class Rocket extends Laser {
         this.scene.rocketWeapon.play();
         this.play('rocketAnimation');
         this.hasHadInitialVelocity = false;
+        this.setAccelerationX(Math.min((this.projectileSpeed)*0.5) * Math.cos(alpha))
+        this.setAccelerationY(Math.min((this.projectileSpeed)*0.5) * Math.sin(alpha))
     }
     preUpdate(time, delta) {
         if (this.enemy && !this.enemy.visible) {
@@ -996,10 +998,12 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
         if (this.timer) {
             clearInterval(this.timer);
         }
-        if (this.shooter === this.scene.ship) {
+        if (shooter === this.scene.ship) {
+            console.log("player shot!")
             this.scene.setSecondaryPercent(this.energyPercent);
             this.energyPercent -= this.energyDrain;
         } else {
+            console.log("boss shot!")
             this.energyPercent -= this.energyDrain*0.01;
         }
         
@@ -1024,7 +1028,7 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
                         this.energyPercent = 1;
                         clearInterval(this.timer);
                     }
-                    if (this.shooter === this.scene.ship) {
+                    if (shooter === this.scene.ship) {
                         this.scene.setSecondaryPercent(this.energyPercent);
                     }
                 }, incrementInterval);
@@ -1390,7 +1394,7 @@ class StageManager {
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
         this.stages.push([0, 0, 0, 0, 0, 1]);
-        //this.stages.push([1, 0, 0, 0, 0, 0]);
+        this.stages.push([5, 1, 0, 0, 0, 0]);
         //this.stages.push([, 6, 5, 1, 20, 0]);
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
