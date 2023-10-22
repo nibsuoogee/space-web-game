@@ -284,7 +284,8 @@ class Boss extends BlueEnemy {
             2: -110,
             3: 160
         }
-        //this.setScale(1.5, 1.5);
+        this.setBodySize(40, 40, true);
+        this.setOffset(200,130)
         this.laserAnimationReady = true;
         this.startAnimation = 1;
     }
@@ -307,9 +308,11 @@ class Boss extends BlueEnemy {
             this.scene.time.addEvent({
                 delay: this.weaponCycleDelay,
                 callback: () => {
-                    console.log(this.currentWeapon)
-                    this.cycleRandomWeapon();
-                    this.weaponCycleReady = true;
+                    if (this && this.active) {
+                        console.log(this.currentWeapon)
+                        this.cycleRandomWeapon();
+                        this.weaponCycleReady = true;
+                    }
                 },
                 callbackScope: this,
                 repeat: false,
@@ -364,6 +367,7 @@ class Boss extends BlueEnemy {
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
             this.scene.bossNameText.setVisible(false);
+            this.bossAnimation.destroy();
         } else {
             this.healthText.setVisible(false);
             this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
@@ -1513,32 +1517,31 @@ class BossAnimation extends Phaser.Physics.Arcade.Sprite{
         });
 
     }
-
     BeamAnimation(){
         this.anims.play('StartBossBeamAnimation');
-            this.scene.time.addEvent({
-                delay: 1000,
-                callback: () => {
+        this.scene.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (this && this.active) {
                     this.anims.play('RepeatBossBeamAnimation');
-                    console.log("event started");
-                },
-                callbackScope: this,
-                repeat: false,
-            });
-
+                }
+            },
+            callbackScope: this,
+            repeat: false,
+        });
     }
-
     RocketAnimation(){
         this.anims.play('StartBossRocketAnimation');
-            this.scene.time.addEvent({
-                delay: 3500,
-                callback: () => {
+        this.scene.time.addEvent({
+            delay: 3500,
+            callback: () => {
+                if (this && this.active) {
                     this.anims.play('EndBossRocketAnimation');
-                },
-                callbackScope: this,
-                repeat: false,
-            });
-
+                }
+            },
+            callbackScope: this,
+            repeat: false,
+        });
     }
 }
 
