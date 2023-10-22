@@ -10,13 +10,7 @@ export class MenuScene extends Phaser.Scene{
         console.log("I GOT IT!");
     }
     preload() {
-        this.load.audio("drop-loop", "../../assets/music/MUSTY-0.2-game-drop-loop.mp3");
-        this.load.image("menu_text", "../../assets/images/text/star fighter menu button.png");
-        this.load.image("menu_text_hover", "../../assets/images/text/star fighter menu button red.png");
 
-        this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-03.mp3");
-        this.load.audio("laser_damage", "../../assets/sfx/star-fighter-laser-damage-hull.mp3");
-        
     }
     create() {
         this.sound.volume = 0.05;

@@ -270,20 +270,25 @@ class Boss extends BlueEnemy {
         this.weaponCycleDelay = 4000;
         this.weaponCycleReady = true;
         this.timeSinceShot = 8;
-        this.currentWeapon = "laserBeam";
+        this.currentWeapon = "rocket";
         this.bossAnimation.BeamAnimation();
         this.laserAngle = 0;
         this.laserAngleSpeed = 0.01;
         this.laserTurningClockwise = true;
-        this.rocketDelay = 300;
+        this.rocketDelay = 200;
         this.rocketReady = true;
-        this.rocketSpawnShoulderIsLeft = true;
-        //this.setScale(1.5, 1.5);
+        this.rocketSpawnNumber = 0;
+        this.rocketSpawnOffset = {
+            0: -160,
+            1: 110,
+            2: -110,
+            3: 160
+        }
+        this.setBodySize(40, 40, true);
+        this.setOffset(200,130)
         this.laserAnimationReady = true;
         this.startAnimation = 1;
-
     }
-
     preUpdate(delta, time) {
         this.setVisible(false);
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
@@ -303,9 +308,11 @@ class Boss extends BlueEnemy {
             this.scene.time.addEvent({
                 delay: this.weaponCycleDelay,
                 callback: () => {
-                    console.log(this.currentWeapon)
-                    this.cycleRandomWeapon();
-                    this.weaponCycleReady = true;
+                    if (this && this.active) {
+                        console.log(this.currentWeapon)
+                        this.cycleRandomWeapon();
+                        this.weaponCycleReady = true;
+                    }
                 },
                 callbackScope: this,
                 repeat: false,
@@ -313,18 +320,17 @@ class Boss extends BlueEnemy {
         }
     }
     laserBeamPreUpdate() {
-        if (this.laserTurningClockwise && this.laserAngle >= 3.14) {
+        if (this.laserTurningClockwise && this.laserAngle >= 3.5) {
             this.laserTurningClockwise = false;
         }
-        if (!this.laserTurningClockwise && this.laserAngle <= 0) {
+        if (!this.laserTurningClockwise && this.laserAngle <= -0.35) {
             this.laserTurningClockwise = true;
         }
-
         this.laserAngle += this.laserTurningClockwise ? this.laserAngleSpeed : -this.laserAngleSpeed;
-        const offsetX = Math.cos(this.laserAngle) * 1080;
-        const offsetY = Math.sin(this.laserAngle) * 1080;
+        const offsetX = Math.cos(this.laserAngle) * 1025;
+        const offsetY = Math.sin(this.laserAngle) * 1025;
         if (this.scene.checkPlayerAlive()) {
-            this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y +20) + offsetY, this.laserAngle, this);
+            this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y+60) + offsetY, this.laserAngle, this);
         }
 
     }
@@ -340,24 +346,20 @@ class Boss extends BlueEnemy {
             repeat: false,
         });
         const rocketSpawnDistance = 50;
-        const angleRad = Phaser.Math.DegToRad(this.angle-90)
+        const angleRad = Phaser.Math.DegToRad(this.angle+90)
         const xOffset = Math.cos(angleRad) * rocketSpawnDistance;
         const yOffset = Math.sin(angleRad) * rocketSpawnDistance;
-        let xShoulderOffset = 0;
-        if (this.rocketSpawnShoulderIsLeft) {
-            this.rocketSpawnShoulderIsLeft = false;
-            xShoulderOffset = -200;
-        } else {
-            this.rocketSpawnShoulderIsLeft = true;
-            xShoulderOffset = 200;
-        }
-        this.scene.bossRocketGroup.fireLaser(this.x + xOffset + xShoulderOffset, this.y + yOffset, angleRad, this);
+        this.rocketSpawnNumber++
+        this.rocketSpawnNumber = this.rocketSpawnNumber === 4 ? 0 : this.rocketSpawnNumber++;
+        const shoulderOffsetX = this.rocketSpawnOffset[this.rocketSpawnNumber];
+        this.scene.bossRocketGroup.fireLaser(this.x + xOffset + shoulderOffsetX, this.y + yOffset - 60, angleRad, this);
     }
     fistPreUpdate() {
 
     }
     checkHealth() {
         if (this.health <= 0) {
+            this.scene.bossHealthBar.removeChildren();
             this.scene.bossHealthBar.destroy();
             this.displayParticles('deathFireParticle');
             this.spawnScrap();
@@ -365,6 +367,7 @@ class Boss extends BlueEnemy {
             this.setVisible(false);
             this.scene.addPlayersPoints(10);
             this.scene.bossNameText.setVisible(false);
+            this.bossAnimation.destroy();
         } else {
             this.healthText.setVisible(false);
             this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
@@ -498,7 +501,7 @@ class Rocket extends Laser {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
         this.projectileSpeed = 900;
-        this.dragValue = 1000;
+        this.dragValue = 2000;
         this.hasHit = false;
         this.enemy;
         this.lockedOnEnemy = undefined;
@@ -521,8 +524,7 @@ class Rocket extends Laser {
         this.body.setDrag(this.dragValue, this.dragValue)
         this.scene.rocketWeapon.play();
         this.play('rocketAnimation');
-        this.setAccelerationX((this.projectileSpeed * 0.1) * Math.cos(alpha))
-        this.setAccelerationY((this.projectileSpeed * 0.1) * Math.sin(alpha))
+        this.hasHadInitialVelocity = false;
     }
     preUpdate(time, delta) {
         if (this.enemy && !this.enemy.visible) {
@@ -565,12 +567,16 @@ class Rocket extends Laser {
         this.angle = Phaser.Math.RadToDeg(angleToEnemy);
         if (distToEnemy > 0) {
             if (this.lockedOnEnemy === this.scene.ship) {
-                this.setAccelerationX(Math.min((this.projectileSpeed * 100/distToEnemy + 300)) * Math.cos(angle))
-                this.setAccelerationY(Math.min((this.projectileSpeed * 100/distToEnemy + 300)) * Math.sin(angle))
+                if (!this.hasHadInitialVelocity) {
+                    this.hasHadInitialVelocity = true;
+                    this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 200) * Math.cos(angle))
+                    this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 200) * Math.sin(angle))
+                }
+                this.setAccelerationX(Math.min((this.projectileSpeed * 100/distToEnemy + 100)) * Math.cos(angle))
+                this.setAccelerationY(Math.min((this.projectileSpeed * 100/distToEnemy + 100)) * Math.sin(angle))
             } else {
                 this.setVelocityX((this.projectileSpeed * 100/distToEnemy + 200) * Math.cos(angle))
                 this.setVelocityY((this.projectileSpeed * 100/distToEnemy + 200) * Math.sin(angle))
-                
             }
         }
     }
@@ -1340,7 +1346,7 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
         const fillHeight = (100+this.extraHeight) * percent;
         this.rechargeBarFill.fillRect(this.x, this.y+100, 10, -fillHeight);
     }
-    destroy() {
+    removeChildren() {
         this.icon.destroy();
         this.rechargeBar.destroy();
         this.rechargeBarFill.destroy();
@@ -1370,7 +1376,7 @@ class BossHealthBar extends Phaser.Physics.Arcade.Sprite {
         const fillWidth = 100 * percent;
         this.rechargeBarFill.fillRect(this.x, this.y, fillWidth*6, 10);
     }
-    destroy() {
+    removeChildren() {
         this.icon.destroy();
         this.rechargeBar.destroy();
         this.rechargeBarFill.destroy();
@@ -1384,7 +1390,7 @@ class StageManager {
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
         this.stages.push([0, 0, 0, 0, 0, 1]);
-        this.stages.push([1, 0, 0, 0, 0, 0]);
+        //this.stages.push([1, 0, 0, 0, 0, 0]);
         //this.stages.push([, 6, 5, 1, 20, 0]);
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
@@ -1398,7 +1404,11 @@ class StageManager {
     }
     stageAction() {
         if (!this.readyForNextStage) {return;}
-        //this.scene.displayTooltip(`stage ${this.currentStage + 1} begin!`, true);
+        if (this.currentStage+1 === this.stages.length && this.checkActiveEnemies()) {
+            if (Math.random() < 0.2) {
+                this.scene.asteroidGroup.fireLaser();
+            }      
+        }
         const sum = this.currentStageCopy.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
         if (sum < 1) {
             if (!this.checkActiveEnemies()) {
@@ -1407,7 +1417,6 @@ class StageManager {
                 this.scene.onTimerComplete();
                 this.currentStage += 1;
                 if (this.currentStage === this.stages.length) {
-                    console.log("new game")
                     this.currentStage = 0; // new game+
                     this.scene.globalEnemyDamageIncrease();
                     this.scene.globalEnemyHealthIncrease();
@@ -1508,32 +1517,31 @@ class BossAnimation extends Phaser.Physics.Arcade.Sprite{
         });
 
     }
-
     BeamAnimation(){
         this.anims.play('StartBossBeamAnimation');
-            this.scene.time.addEvent({
-                delay: 1000,
-                callback: () => {
+        this.scene.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (this && this.active) {
                     this.anims.play('RepeatBossBeamAnimation');
-                    console.log("event started");
-                },
-                callbackScope: this,
-                repeat: false,
-            });
-
+                }
+            },
+            callbackScope: this,
+            repeat: false,
+        });
     }
-
     RocketAnimation(){
         this.anims.play('StartBossRocketAnimation');
-            this.scene.time.addEvent({
-                delay: 3500,
-                callback: () => {
+        this.scene.time.addEvent({
+            delay: 3500,
+            callback: () => {
+                if (this && this.active) {
                     this.anims.play('EndBossRocketAnimation');
-                },
-                callbackScope: this,
-                repeat: false,
-            });
-
+                }
+            },
+            callbackScope: this,
+            repeat: false,
+        });
     }
 }
 
@@ -1542,12 +1550,17 @@ export class PlayScene extends Phaser.Scene{
         super({
             key: CST.SCENES.PLAY
         })
-        this.playerDeathHasPlayed = false;
-        this.stageActionReady = true;
     }
 
     init(data) {
         console.log(data);
+    }
+
+    preload() {
+
+    }
+
+    create() {
         this.backgroundSpeed = 3;
         this.mouseX = 0;
         this.mouseY = 0;
@@ -1557,96 +1570,12 @@ export class PlayScene extends Phaser.Scene{
         this.tintIsPlaying = false;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
-    }
 
-    preload() {
-        this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
-        this.load.image('enemy', "../../assets/images/Enemies/enemy.png");
-        this.load.image('orangeEnemy', "../../assets/images/Enemies/OrangeEnemy.png");
-        this.load.image('blueEnemy', "../../assets/images/Enemies/BlueEnemy.png");
-        this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
-        this.load.image('distort', 'assets/images/phaser/noisebig.png');
-        this.load.image('blackHoleIcon', 'assets/images/Shop/BlackholeIcon.png');
-        this.load.image('laserBeamIcon', 'assets/images/Shop/laserBeamIcon.png');
-        this.load.image('rocketIcon', 'assets/images/Shop/RocketIcon.png');
-        this.load.image('skullIcon', 'assets/images/skull-icon.png');
-        this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
-            frameWidth: 35,
-            frameHeight: 16,
-        });
-        this.load.image('beamLaser', "../../assets/images/star fighter max long blue.png");
-        this.load.image('beamLaserRed', "../../assets/images/star fighter max long red.png");
-        this.load.spritesheet('bomb', "../../assets/images/BlackHoleBombSprite.png", {
-            frameWidth: 13,
-            frameHeight: 13,
-        });
-        this.load.spritesheet('BlackHole', "../../assets/images/BlackHoleSprite.png", {
-            frameWidth: 40,
-            frameHeight: 40,
-        });
-        this.load.spritesheet('ship', 'assets/images/ShipSprite.png', {
-            frameWidth: 180,
-            frameHeight: 70,
-        })
-        this.load.spritesheet('rainbowEnemy', 'assets/images/Enemies/GoldenRainbowEnemy.png', {
-            frameWidth: 52,
-            frameHeight: 59,
-        });
-        this.load.spritesheet('shop', "../../assets/images/Shop/shop.png",{
-            frameWidth: 200,
-            frameHeight: 200,
-        });
+        this.playerDeathHasPlayed = false;
+        this.stageActionReady = true;
 
-        this.load.spritesheet('Boss', "../../assets/images/Enemies/FinalBoss.png",{
-            frameWidth: 438,
-            frameHeight: 175,
-        });
-
-        this.load.image('scrap', "../../assets/images/scrap.png");
-        this.load.image('healthkit', "../../assets/images/Healthkit.png");
-        this.load.image('heart', "../../assets/images/HealthIcon.png");
-        this.load.image('dodgeIcon', "../../assets/images/dodgeIcon.png");
-        this.load.image('asteroid', "../../assets/images/asteroid.png");
-        this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
-        this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
-        this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
-        this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
-
-        this.load.image('EngineUpgrade', "../../assets/images/Shop/EngineIcon.png");
-        this.load.image('HealthUpgrade', "../../assets/images/Shop/ShieldIcon.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/Shop/FirerateIcon.png");
-        this.load.image('DamageUpgrade', "../../assets/images/Shop/BulletDamageIcon.png");
-        this.load.image('HullCollisionUpgrade', "../../assets/images/Shop/ThornsIcon1.png");
-        this.load.image('BulletSpeedUpgrade', "../../assets/images/Shop/BulletSpeedIcon.png");
-
-        this.load.image('shopWindow', "../../assets/images/Shop/ShopKeeper.png");
-        this.load.image('LeaveShop', "../../assets/images/Shop/LeaveShop.png");
-        this.load.image('RepairShip', "../../assets/images/Shop/RepairIcon.png");
-
-        this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
-        this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
-        this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
-        this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
-        this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
-        this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
-        this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
-        this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
-        this.load.audio("thruster", "../../assets/sfx/player-ship-thruster.mp3");
-        this.load.audio("laser_beam_firing", "../../assets/sfx/laser-beam-firing.mp3");
-        this.load.audio("laser_beam_firing_end", "../../assets/sfx/laser-beam-firing-ending.mp3");
-        this.load.audio("player_eating_laser", "../../assets/sfx/player-eating-laser-beam.mp3");
-        this.load.audio("player_eating_laser_end", "../../assets/sfx/player-eating-laser-beam-end.mp3");
-        this.load.audio("digitalInterference", "../../assets/sfx/digital-interference.mp3");
-        this.load.audio("blackHoleImplosion", "../../assets/sfx/black-hole-implosion.mp3");
-        this.load.audio("shop_intro", "../../assets/music/shop-theme-fratellis-cover-intro.mp3");
-        this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
-        this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
-
-    }
-
-    create() {
         this.addShip();
-
+        this.stageManager = new StageManager(this);
         this.zapGun1 = this.sound.add("zap_gun_1", {volume: 0.6})
         this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
         this.shopZap = this.sound.add("shop_zap")
@@ -1694,6 +1623,8 @@ export class PlayScene extends Phaser.Scene{
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
         this.background.preFX.addBarrel(0.5);
+        this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
+
 
         //menu
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
@@ -1733,7 +1664,10 @@ export class PlayScene extends Phaser.Scene{
         });
         menuButton.on("pointerup", () => {
             dropLoop.stop();
-            //this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
+
+            this.sound.stopAll();
+            this.tweens.killAll();
+            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
 
         this.input.on('pointermove', pointer => {
@@ -1767,7 +1701,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary("rocket")
 
         this.anims.create({
             key: 'shopAnimation',
@@ -1775,6 +1708,8 @@ export class PlayScene extends Phaser.Scene{
             frameRate: 10,
             repeat: -1,
         });
+
+        this.changeSecondary("rocket")
 
     }
 
@@ -1849,6 +1784,7 @@ export class PlayScene extends Phaser.Scene{
             colour = "0x2600ff";
         }
         if (this.secondaryRechargeBar) {
+            this.secondaryRechargeBar.removeChildren();
             this.secondaryRechargeBar.destroy();
         }
         this.secondaryRechargeBar = new RechargeBar(this, 90, this.game.renderer.height*0.86, icon, colour);
@@ -2344,6 +2280,5 @@ export class PlayScene extends Phaser.Scene{
     globalEnemyHealthIncrease() {
 
     }
-
-
+    
 }
