@@ -349,6 +349,7 @@ class Boss extends BlueEnemy {
     }
     checkHealth() {
         if (this.health <= 0) {
+            this.scene.bossHealthBar.removeChildren();
             this.scene.bossHealthBar.destroy();
             this.displayParticles('deathFireParticle');
             this.spawnScrap();
@@ -1328,7 +1329,7 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
         const fillHeight = (100+this.extraHeight) * percent;
         this.rechargeBarFill.fillRect(this.x, this.y+100, 10, -fillHeight);
     }
-    destroy() {
+    removeChildren() {
         this.icon.destroy();
         this.rechargeBar.destroy();
         this.rechargeBarFill.destroy();
@@ -1358,7 +1359,7 @@ class BossHealthBar extends Phaser.Physics.Arcade.Sprite {
         const fillWidth = 100 * percent;
         this.rechargeBarFill.fillRect(this.x, this.y, fillWidth*6, 10);
     }
-    destroy() {
+    removeChildren() {
         this.icon.destroy();
         this.rechargeBar.destroy();
         this.rechargeBarFill.destroy();
@@ -1371,7 +1372,7 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([0, 0, 0, 0, 0, 1]);
+        this.stages.push([1, 1, 2, 3, 2, 1]);
         this.stages.push([1, 0, 0, 0, 0, 0]);
         //this.stages.push([, 6, 5, 1, 20, 0]);
         this.currentStage = 0;
@@ -1395,7 +1396,6 @@ class StageManager {
                 this.scene.onTimerComplete();
                 this.currentStage += 1;
                 if (this.currentStage === this.stages.length) {
-                    console.log("new game")
                     this.currentStage = 0; // new game+
                     this.scene.globalEnemyDamageIncrease();
                     this.scene.globalEnemyHealthIncrease();
@@ -1455,12 +1455,17 @@ export class PlayScene extends Phaser.Scene{
         super({
             key: CST.SCENES.PLAY
         })
-        this.playerDeathHasPlayed = false;
-        this.stageActionReady = true;
     }
 
     init(data) {
         console.log(data);
+    }
+
+    preload() {
+
+    }
+
+    create() {
         this.backgroundSpeed = 3;
         this.mouseX = 0;
         this.mouseY = 0;
@@ -1470,87 +1475,12 @@ export class PlayScene extends Phaser.Scene{
         this.tintIsPlaying = false;
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
-    }
 
-    preload() {
-        this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
-        this.load.image('enemy', "../../assets/images/enemy.png");
-        this.load.image('orangeEnemy', "../../assets/images/OrangeEnemy.png");
-        this.load.image('blueEnemy', "../../assets/images/BlueEnemy.png");
-        this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
-        this.load.image('distort', 'assets/images/phaser/noisebig.png');
-        this.load.image('blackHoleIcon', 'assets/images/BlackholeIcon.png');
-        this.load.image('laserBeamIcon', 'assets/images/laserBeamIcon.png');
-        this.load.image('skullIcon', 'assets/images/skull-icon.png');
-        this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
-            frameWidth: 35,
-            frameHeight: 16,
-        });
-        this.load.image('beamLaser', "../../assets/images/star fighter max long blue.png");
-        this.load.image('beamLaserRed', "../../assets/images/star fighter max long red.png");
-        this.load.spritesheet('bomb', "../../assets/images/BlackHoleBombSprite.png", {
-            frameWidth: 13,
-            frameHeight: 13,
-        });
-        this.load.spritesheet('BlackHole', "../../assets/images/BlackHoleSprite.png", {
-            frameWidth: 40,
-            frameHeight: 40,
-        });
-        this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
-            frameWidth: 180,
-            frameHeight: 70,
-        })
-        this.load.spritesheet('rainbowEnemy', 'assets/images/GoldenRainbowEnemy.png', {
-            frameWidth: 52,
-            frameHeight: 59,
-        });
-        this.load.spritesheet('shop', "../../assets/images/shop.png",{
-            frameWidth: 200,
-            frameHeight: 200,
-        });
+        this.playerDeathHasPlayed = false;
+        this.stageActionReady = true;
 
-        this.load.image('scrap', "../../assets/images/scrap.png");
-        this.load.image('healthkit', "../../assets/images/Healthkit.png");
-        this.load.image('heart', "../../assets/images/HealthIcon.png");
-        this.load.image('dodgeIcon', "../../assets/images/dodgeIcon.png");
-        this.load.image('asteroid', "../../assets/images/asteroid.png");
-        this.load.image('deathFireParticle', "../../assets/images/death-fire-simple.png");
-        this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
-        this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
-        this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
-        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
-        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
-        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
-        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
-        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
-        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
-
-        this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
-        this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
-        this.load.audio("repair_hammering", "../../assets/sfx/star-fighter-repair-hammering-2.mp3");
-        this.load.audio("repair_drill", "../../assets/sfx/star-fighter-repair-drill.wav");
-        this.load.audio("rocket_weapon", "../../assets/sfx/star-fighter-fire-rocket-weapon-2.mp3");
-        this.load.audio("scrap_pick_up", "../../assets/sfx/scrap-pick-up-01.mp3");
-        this.load.audio("enemy_explosion", "../../assets/sfx/enemy-ship-exploding.mp3");
-        this.load.audio("dodge_sound", "../../assets/sfx/star-fighter-ship-booster-dodge.mp3");
-        this.load.audio("thruster", "../../assets/sfx/player-ship-thruster.mp3");
-        this.load.audio("laser_beam_firing", "../../assets/sfx/laser-beam-firing.mp3");
-        this.load.audio("laser_beam_firing_end", "../../assets/sfx/laser-beam-firing-ending.mp3");
-        this.load.audio("player_eating_laser", "../../assets/sfx/player-eating-laser-beam.mp3");
-        this.load.audio("player_eating_laser_end", "../../assets/sfx/player-eating-laser-beam-end.mp3");
-        this.load.audio("digitalInterference", "../../assets/sfx/digital-interference.mp3");
-        this.load.audio("blackHoleImplosion", "../../assets/sfx/black-hole-implosion.mp3");
-        this.load.audio("shop_intro", "../../assets/music/shop-theme-fratellis-cover-intro.mp3");
-        this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
-        this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
-
-    }
-
-    create() {
         this.addShip();
-
+        this.stageManager = new StageManager(this);
         this.zapGun1 = this.sound.add("zap_gun_1", {volume: 0.6})
         this.laserDamage = this.sound.add("laser_damage", {volume: 0.5})
         this.shopZap = this.sound.add("shop_zap")
@@ -1598,6 +1528,8 @@ export class PlayScene extends Phaser.Scene{
         this.sound.volume = 0.05;
         this.background = this.add.tileSprite(0,0, this.game.renderer.width, this.game.renderer.height, "star_background").setOrigin(0).setDepth(-1);
         this.background.preFX.addBarrel(0.5);
+        this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
+
 
         //menu
         let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
@@ -1637,7 +1569,10 @@ export class PlayScene extends Phaser.Scene{
         });
         menuButton.on("pointerup", () => {
             dropLoop.stop();
-            //this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
+
+            this.sound.stopAll();
+            this.tweens.killAll();
+            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
 
         this.input.on('pointermove', pointer => {
@@ -1671,7 +1606,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary("rocket")
 
         this.anims.create({
             key: 'shopAnimation',
@@ -1679,6 +1613,8 @@ export class PlayScene extends Phaser.Scene{
             frameRate: 10,
             repeat: -1,
         });
+
+        this.changeSecondary("rocket")
     }
 
     update() {
@@ -1752,6 +1688,7 @@ export class PlayScene extends Phaser.Scene{
             colour = "0x2600ff";
         }
         if (this.secondaryRechargeBar) {
+            this.secondaryRechargeBar.removeChildren();
             this.secondaryRechargeBar.destroy();
         }
         this.secondaryRechargeBar = new RechargeBar(this, 90, this.game.renderer.height*0.86, icon, colour);
