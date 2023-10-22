@@ -18,6 +18,8 @@ export class LoreScene extends Phaser.Scene {
         }).setDepth(1);
         this.delayBetweenCharacters = 60;
         this.currentIndex = 0;
+        this.spaceKey;
+        this.shiftKey;
     }
 
     preload() {
@@ -25,18 +27,29 @@ export class LoreScene extends Phaser.Scene {
     }
 
     create() {
-        this.add.image(250,160, "QuestGiver").setOrigin(0).setInteractive().setScale(2);
+        this.add.image(250, 160, "QuestGiver").setOrigin(0).setInteractive().setScale(2);
+        this.add.image(250, 700, "tutorial").setOrigin(0).setInteractive().setScale(2);
         this.timedEvent = this.time.addEvent({
             delay: this.delayBetweenCharacters,
             callback: this.addNextCharacter,
             callbackScope: this,
             repeat: this.fullText.length - 1
-        })
+        });
+
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE); // Listen for Space key
+        this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT); // Listen for Shift key
+
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
         this.menuLoop = this.scene.get("MENU").data.get("menuLoop");
-        this.loreTypingSound = this.sound.add("lore-typing", {volume: 0.6});
+        this.loreTypingSound = this.sound.add("lore-typing", { volume: 0.6 });
         this.loreTypingSound.play();
+    }
+
+    update() {
+        if (this.spaceKey.isDown || this.shiftKey.isDown) {
+            this.skipToCallback();
+        }
     }
 
     addNextCharacter() {
@@ -45,20 +58,18 @@ export class LoreScene extends Phaser.Scene {
         this.currentIndex++;
 
         if (this.currentIndex >= this.fullText.length) {
-            this.time.addEvent({
-                delay: 2000,
-                callback: () => {
-                    this.loreTypingSound.stop();
-                    this.menuLoop.stop();
-                    this.buildupBar.play();
-                    this.buildupBar.on("complete", () => {
-                        this.dropLoop.play();
-                    })
-                    this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar});
-                    this.scene.start(CST.SCENES.PLAY, "START");
-                },
-                callbackScope: this
-            });
+            this.skipToCallback();
         }
+    }
+
+    skipToCallback() {
+        this.loreTypingSound.stop();
+        this.menuLoop.stop();
+        this.buildupBar.play();
+        this.buildupBar.on("complete", () => {
+            this.dropLoop.play();
+        });
+        this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar});
+        this.scene.start(CST.SCENES.PLAY, "START");
     }
 }
