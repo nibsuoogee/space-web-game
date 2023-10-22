@@ -36,6 +36,8 @@ export class LoadScene extends Phaser.Scene{
 
 
         this.load.audio("drop-loop", "../../assets/music/MUSTY-0.2-game-drop-loop.mp3");
+        this.load.audio("lore-typing", "../../assets/sfx/lore-typing.mp3");
+
         this.load.image("menu_text", "../../assets/images/text/star fighter menu button.png");
         this.load.image("menu_text_hover", "../../assets/images/text/star fighter menu button red.png");
 
