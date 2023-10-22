@@ -32,6 +32,10 @@ export class LoreScene extends Phaser.Scene {
             callbackScope: this,
             repeat: this.fullText.length - 1
         });
+
+        this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
+        this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
+        this.menuLoop = this.scene.get("MENU").data.get("menuLoop");
     }
 
     addNextCharacter() {
@@ -43,7 +47,13 @@ export class LoreScene extends Phaser.Scene {
             this.time.addEvent({
                 delay: 2000,
                 callback: () => {
-                    this.scene.start(CST.SCENES.MENU, "START");
+                    this.menuLoop.stop();
+                    this.buildupBar.play();
+                    this.buildupBar.on("complete", () => {
+                        this.dropLoop.play();
+                    })
+                    this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar});
+                    this.scene.start(CST.SCENES.PLAY, "START");
                 },
                 callbackScope: this
             });

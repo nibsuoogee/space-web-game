@@ -1577,8 +1577,8 @@ export class PlayScene extends Phaser.Scene{
         this.mouse1down = false;
         this.mouse2down = false;
         this.tintIsPlaying = false;
-        this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
-        this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
+        this.dropLoop = this.scene.get("LORE").data.get("dropLoop");
+        this.buildupBar = this.scene.get("LORE").data.get("buildupBar");
 
         this.playerDeathHasPlayed = false;
         this.stageActionReady = true;

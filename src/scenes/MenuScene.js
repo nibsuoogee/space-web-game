@@ -13,9 +13,6 @@ export class MenuScene extends Phaser.Scene{
     init(data) {
         console.log(data);
         console.log("I GOT IT!");
-        if(data === "START"){
-            this.onEvent();
-        }
     }
     preload() {
 
@@ -59,22 +56,9 @@ export class MenuScene extends Phaser.Scene{
         });
 
         playButton.on("pointerup", () => {
+            this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar, "menuLoop":this.menuLoop});
             this.scene.start(CST.SCENES.LORE, "Hello to Play scene from Menu!");
 
         });
-
-
-    }
-
-    onEvent(){
-        console.log("ENGAGE THEM!");
-        this.menuLoop.stop();
-        this.buildupBar.play();
-        this.buildupBar.on("complete", () => {
-            this.dropLoop.play();
-        })
-        this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar});
-        this.scene.start(CST.SCENES.PLAY, "Hello to Play scene from Menu!");
-        //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
     }
 }
