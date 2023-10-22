@@ -2066,12 +2066,12 @@ export class PlayScene extends Phaser.Scene{
     shopBuyItem(purchase){
         if(purchase == "EngineUpgrade"){
             if (this.ship.getScrap() < 150) {return;}
-            this.ship.setFlySpeedDelta(10);
+            this.ship.setFlySpeedDelta(15);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "HealthUpgrade"){
             if (this.ship.getScrap() < 150) {return;}
-            this.ship.setMaxHealthDelta(10);
+            this.ship.setMaxHealthDelta(100);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "FireRateUpgrade"){
@@ -2086,17 +2086,17 @@ export class PlayScene extends Phaser.Scene{
             this.shopUpgradeMeaty.play();
         }  else if(purchase == "HullCollisionUpgrade"){
             if (this.ship.getScrap() < 150) {return;}
-            this.ship.setHullCollisionDamageDelta(10);
+            this.ship.setHullCollisionDamageDelta(15);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "BulletSpeedUpgrade"){
             if (this.ship.getScrap() < 150) {return;}
-            this.ship.setBulletSpeedDelta(10);
+            this.ship.setBulletSpeedDelta(200);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "Repair") {
             const cost = this.ship.getMaxHealth() - this.ship.getHealth();
-            if (this.ship.getScrap() < cost) {return;}
+            if (this.ship.getScrap() < cost * 0.2) {return;}
             this.subtractPlayerScrap(Math.round(cost * 0.2));
             this.ship.resetHealth();
             this.repairHammer.play();
