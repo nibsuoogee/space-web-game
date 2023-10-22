@@ -1639,7 +1639,7 @@ export class PlayScene extends Phaser.Scene{
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
         this.scrapIcon = this.add.image(this.game.renderer.width - 390, this.game.renderer.height - 64, "scrap").setDepth(2).setVisible(false);
         this.tooltipText = this.add.bitmapText(130, this.game.renderer.height * 0.78, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
-        this.bossNameText = this.add.bitmapText(500, this.game.renderer.height*0.87, 'atari-classic', 'Boss name', 16).setVisible(false).setDepth(2).setTint('0x220000');
+        this.bossNameText = this.add.bitmapText(500, this.game.renderer.height*0.87, 'atari-classic', 'Boss name', 16).setVisible(false).setDepth(2).setTint('0xff0024');
 
         //ship stats
         this.healthPercent = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 120, 'atari-classic', 'HP', 15).setDepth(2).setTint('0xff0024').setVisible(false);
