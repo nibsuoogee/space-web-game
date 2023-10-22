@@ -31,11 +31,12 @@ export class LoreScene extends Phaser.Scene {
             callback: this.addNextCharacter,
             callbackScope: this,
             repeat: this.fullText.length - 1
-        });
-
+        })
         this.dropLoop = this.scene.get("MENU").data.get("dropLoop");
         this.buildupBar = this.scene.get("MENU").data.get("buildupBar");
         this.menuLoop = this.scene.get("MENU").data.get("menuLoop");
+        this.loreTypingSound = this.sound.add("lore-typing", {volume: 0.6});
+        this.loreTypingSound.play();
     }
 
     addNextCharacter() {
@@ -47,6 +48,7 @@ export class LoreScene extends Phaser.Scene {
             this.time.addEvent({
                 delay: 2000,
                 callback: () => {
+                    this.loreTypingSound.stop();
                     this.menuLoop.stop();
                     this.buildupBar.play();
                     this.buildupBar.on("complete", () => {
