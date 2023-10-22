@@ -1561,13 +1561,14 @@ export class PlayScene extends Phaser.Scene{
 
     preload() {
         this.load.image('laser', "../../assets/images/star fighter laser long blue.png");
-        this.load.image('enemy', "../../assets/images/enemy.png");
-        this.load.image('orangeEnemy', "../../assets/images/OrangeEnemy.png");
-        this.load.image('blueEnemy', "../../assets/images/BlueEnemy.png");
+        this.load.image('enemy', "../../assets/images/Enemies/enemy.png");
+        this.load.image('orangeEnemy', "../../assets/images/Enemies/OrangeEnemy.png");
+        this.load.image('blueEnemy', "../../assets/images/Enemies/BlueEnemy.png");
         this.load.image('laserRed', "../../assets/images/star fighter laser long red.png");
         this.load.image('distort', 'assets/images/phaser/noisebig.png');
-        this.load.image('blackHoleIcon', 'assets/images/BlackholeIcon.png');
-        this.load.image('laserBeamIcon', 'assets/images/laserBeamIcon.png');
+        this.load.image('blackHoleIcon', 'assets/images/Shop/BlackholeIcon.png');
+        this.load.image('laserBeamIcon', 'assets/images/Shop/laserBeamIcon.png');
+        this.load.image('rocketIcon', 'assets/images/Shop/RocketIcon.png');
         this.load.image('skullIcon', 'assets/images/skull-icon.png');
         this.load.spritesheet('rocket', '../../assets/images/MissileSprite.png', {
             frameWidth: 35,
@@ -1583,20 +1584,20 @@ export class PlayScene extends Phaser.Scene{
             frameWidth: 40,
             frameHeight: 40,
         });
-        this.load.spritesheet('ship', 'assets/images/SpriteAnimationFixed.png', {
+        this.load.spritesheet('ship', 'assets/images/ShipSprite.png', {
             frameWidth: 180,
             frameHeight: 70,
         })
-        this.load.spritesheet('rainbowEnemy', 'assets/images/GoldenRainbowEnemy.png', {
+        this.load.spritesheet('rainbowEnemy', 'assets/images/Enemies/GoldenRainbowEnemy.png', {
             frameWidth: 52,
             frameHeight: 59,
         });
-        this.load.spritesheet('shop', "../../assets/images/shop.png",{
+        this.load.spritesheet('shop', "../../assets/images/Shop/shop.png",{
             frameWidth: 200,
             frameHeight: 200,
         });
 
-        this.load.spritesheet('Boss', "../../assets/images/FinalBoss.png",{
+        this.load.spritesheet('Boss', "../../assets/images/Enemies/FinalBoss.png",{
             frameWidth: 438,
             frameHeight: 175,
         });
@@ -1610,14 +1611,17 @@ export class PlayScene extends Phaser.Scene{
         this.load.image('spawnFlash', "../../assets/images/spawn-flash-simple.png");
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
         this.load.bitmapFont('atari-classic', 'assets/images/text/bitmap/atari-classic.png', 'assets/images/text/bitmap/atari-classic.xml');
-        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
-        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
-        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
-        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
-        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
-        this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
-        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
+
+        this.load.image('EngineUpgrade', "../../assets/images/Shop/EngineIcon.png");
+        this.load.image('HealthUpgrade', "../../assets/images/Shop/ShieldIcon.png");
+        this.load.image('FireRateUpgrade', "../../assets/images/Shop/FirerateIcon.png");
+        this.load.image('DamageUpgrade', "../../assets/images/Shop/BulletDamageIcon.png");
+        this.load.image('HullCollisionUpgrade', "../../assets/images/Shop/ThornsIcon1.png");
+        this.load.image('BulletSpeedUpgrade', "../../assets/images/Shop/BulletSpeedIcon.png");
+
+        this.load.image('shopWindow', "../../assets/images/Shop/ShopKeeper.png");
+        this.load.image('LeaveShop', "../../assets/images/Shop/LeaveShop.png");
+        this.load.image('RepairShip', "../../assets/images/Shop/RepairIcon.png");
 
         this.load.audio("shop_zap", "../../assets/sfx/star-fighter-laser-shop-wet-zap.mp3");
         this.load.audio("shop_upgrade_meaty", "../../assets/sfx/star-fighter-laser-purchase-upgrade-water-like-sound.mp3");
@@ -1699,7 +1703,7 @@ export class PlayScene extends Phaser.Scene{
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 800, 'atari-classic', 'pts: 0', 20).setDepth(2);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
         this.scrapIcon = this.add.image(this.game.renderer.width - 390, this.game.renderer.height - 64, "scrap").setDepth(2).setVisible(false);
-        this.tooltipText = this.add.bitmapText(100, this.game.renderer.height * 0.5, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
+        this.tooltipText = this.add.bitmapText(130, this.game.renderer.height * 0.78, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
         this.bossNameText = this.add.bitmapText(500, this.game.renderer.height*0.87, 'atari-classic', 'Boss name', 16).setVisible(false).setDepth(2).setTint('0x220000');
 
         //ship stats
@@ -2060,6 +2064,12 @@ export class PlayScene extends Phaser.Scene{
         } else if (item == "DamageUpgrade") {
             this.greenUpgradeStat.y = this.game.renderer.height - 100;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
+        } else if (item == "HullCollisionUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height - 40;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
+        } else if (item == "BulletSpeedUpgrade") {
+            this.greenUpgradeStat.y = this.game.renderer.height - 60;
+            this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "Repair") {
             this.greenUpgradeStat.y = this.game.renderer.height - 120;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
@@ -2086,7 +2096,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     onTimerComplete() {
-        var upgrades = [0,1,2,3],
+        var upgrades = [0,1,2,3,4,5],
         selectedAttributes = [],
         i = upgrades.length,
         j = 0;
@@ -2125,11 +2135,11 @@ export class PlayScene extends Phaser.Scene{
             this.ship.setBulletDamageDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
-        }  else if(purchase == "HullCollisionDamage"){
+        }  else if(purchase == "HullCollisionUpgrade"){
             this.ship.setHullCollisionDamageDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
-        } else if(purchase == "BulletSpeed"){
+        } else if(purchase == "BulletSpeedUpgrade"){
             this.ship.setBulletSpeedDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
@@ -2153,13 +2163,13 @@ export class PlayScene extends Phaser.Scene{
             this.shopSlideOut(this.shopImage);
             this.slideOutTweenButtons(this.buttons);
             this.stageManager.setReadyForNextStage(true);
-        } else if (purchase == "rocket") {
+        } else if (purchase == "rocketIcon" && this.ship.secondary !="rocket") {
             this.subtractPlayerScrap(1000);
             this.changeSecondary("rocket");
-        } else if (purchase == "blackHoleIcon") {
+        } else if (purchase == "blackHoleIcon" && this.ship.secondary !="bomb") {
             this.subtractPlayerScrap(1000);
             this.changeSecondary("bomb");
-        } else if (purchase == "laserBeamIcon") {
+        } else if (purchase == "laserBeamIcon" && this.ship.secondary !="laserBeam") {
             this.subtractPlayerScrap(1000);
             this.changeSecondary("laserBeam");
         } 
@@ -2175,15 +2185,15 @@ export class PlayScene extends Phaser.Scene{
             return "Increase ship fire rate";
         } else if(item == "DamageUpgrade"){
             return "Increase ship damage";
-        } else if(item == "HullCollisionDamage"){
+        } else if(item == "HullCollisionUpgrade"){
             return "Increase outgoing and reduce incoming collision damage";
-        } else if(item == "BulletSpeed"){
+        } else if(item == "BulletSpeedUpgrade"){
             return "Increase bullet speed";
         } else if(item == "Repair") {
             return "Repair ship hull";
         } else if(item == "Exit") {
             return "Leave shop and begin next stage";
-        } else if(item == "rocket") {
+        } else if(item == "rocketIcon") {
             return "Homing rocket secondary";
         } else if(item == "blackHoleIcon") {
             return "Black hole bomb secondary";
@@ -2209,21 +2219,10 @@ export class PlayScene extends Phaser.Scene{
         this.shopIntro.on('complete', () => {
             this.shopLoop.play();
         });
-        const scale = 3;
-        const attributeAssets = ["EngineUpgrade", "HealthUpgrade", "FireRateUpgrade", "DamageUpgrade"];
-        const weaponAssets = ["rocket", "blackHoleIcon", "laserBeamIcon"];
-
-        this.load.spritesheet('shop', "../../assets/images/shop.png");
-        this.load.image('shopWindow', "../../assets/images/shopWindow.png");
-        this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
-        this.load.image('RepairShip', "../../assets/images/RepairShip.png");
-
-        this.load.image('EngineUpgrade', "../../assets/images/EngineUpgrade.png");
-        this.load.image('HealthUpgrade', "../../assets/images/HealthUpgrade.png");
-        this.load.image('FireRateUpgrade', "../../assets/images/FireRateUpgrade.png");
-        this.load.image('DamageUpgrade', "../../assets/images/DamageUpgrade.png");
-
-        //this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
+        const scale = 1.5;
+        const attributeAssets = ["EngineUpgrade", "HealthUpgrade", "FireRateUpgrade", "DamageUpgrade", "HullCollisionUpgrade", "BulletSpeedUpgrade"];
+        const weaponAssets = ["rocketIcon", "blackHoleIcon", "laserBeamIcon"];
+        
         this.shopImage = this.add.sprite(this.game.config.width, this.game.config.height / 2, 'shop');
 
         this.shopImage.setOrigin(0, 0.5);
@@ -2237,15 +2236,16 @@ export class PlayScene extends Phaser.Scene{
             ease: 'Power2',
             paused: true,
             onComplete: () => {
-                var shopwindow = this.add.image(0,0, 'shopWindow').setOrigin(0,0);
-                var LeaveShopButton = this.add.image(136*scale,68*scale, 'LeaveShop').setOrigin(0).setInteractive();
-                var RepairShipButton = this.add.image(163*scale,68*scale, 'RepairShip').setOrigin(0).setInteractive();
-                var Upgrade_1_Button = this.add.image(13*scale,13*scale, attributeAssets[Attributes[0]]).setOrigin(0).setInteractive();
-                var Upgrade_2_Button = this.add.image(67*scale,13*scale, attributeAssets[Attributes[1]]).setOrigin(0).setInteractive();
-                var Upgrade_3_Button = this.add.image(13*scale,58*scale, attributeAssets[Attributes[2]]).setOrigin(0).setInteractive();
-                var Upgrade_4_Button = this.add.image(67*scale,58*scale, attributeAssets[Attributes[3]]).setOrigin(0).setInteractive();
-                var WeaponButton = this.add.image(140*scale,20*scale, weaponAssets[randomWeapon]).setOrigin(0).setInteractive()
+                var shopwindow = this.add.image(100,100, 'shopWindow').setOrigin(0,0);
+                var LeaveShopButton = this.add.image(415*scale,315*scale, 'LeaveShop').setOrigin(0).setInteractive();
+                var RepairShipButton = this.add.image(400*scale,275*scale, 'RepairShip').setOrigin(0).setInteractive();
 
+                var Upgrade_1_Button = this.add.image(200*scale,275*scale, attributeAssets[Attributes[0]]).setOrigin(0).setInteractive();
+                var Upgrade_2_Button = this.add.image(240*scale,275*scale, attributeAssets[Attributes[1]]).setOrigin(0).setInteractive();
+                var Upgrade_3_Button = this.add.image(280*scale,275*scale, attributeAssets[Attributes[2]]).setOrigin(0).setInteractive();
+                var Upgrade_4_Button = this.add.image(320*scale,275*scale, attributeAssets[Attributes[3]]).setOrigin(0).setInteractive();
+
+                var WeaponButton = this.add.image(410*scale,190*scale, weaponAssets[randomWeapon]).setOrigin(0).setInteractive()
                 this.buttons = [shopwindow, LeaveShopButton, RepairShipButton, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton];
                 //upgrades scale
                 Upgrade_1_Button.setScale(scale);
@@ -2257,8 +2257,8 @@ export class PlayScene extends Phaser.Scene{
                 WeaponButton.setScale(scale);
 
                 //Shop basics scale
-                LeaveShopButton.setScale(scale/5);
-                RepairShipButton.setScale(scale/5);
+                LeaveShopButton.setScale(scale/2);
+                RepairShipButton.setScale(scale);
                 shopwindow.setScale(scale);
         
                 var shopContainer = this.add.container(32,70, this.buttons, Phaser.Geom.Rectangle.Contains)
@@ -2335,6 +2335,7 @@ export class PlayScene extends Phaser.Scene{
         this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xbb0000');
         this.bossNameText.setText("B.B.W. (Big Beautiful Warship)");
         this.bossNameText.setVisible(true);
+    }
 
     globalEnemyDamageIncrease() {
         this.ship.setEnemyDamageMultiplierDelta(1);
@@ -2343,6 +2344,6 @@ export class PlayScene extends Phaser.Scene{
     globalEnemyHealthIncrease() {
 
     }
-    }
+
 
 }
