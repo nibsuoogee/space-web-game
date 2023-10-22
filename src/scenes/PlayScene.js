@@ -378,7 +378,7 @@ class Boss extends BlueEnemy {
                 this.scene.scrapGroup.fireLaser(deathX + (Math.random()*200)-100, deathY + (Math.random()*200)-100, 0);
             },
             callbackScope: this,
-            repeat: 10,
+            repeat: 20,
         });
         this.scene.time.addEvent({
             delay: 8000,
@@ -1222,7 +1222,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         });
         
         this.enemyDamageMultiplier = 1.0;
-        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 130, this.scene.game.renderer.height - 770, 'atari-classic', 'ng+ 1x', 18).setDepth(3);
+        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 300, this.scene.game.renderer.height - 770, 'atari-classic', 'ng+ 1x', 18).setDepth(3);
         this.gameCompletionsMultiplierText.setTint("0xff0000");
     }
     setSecondary(secondary) {this.secondary = secondary;}
@@ -1637,11 +1637,11 @@ export class PlayScene extends Phaser.Scene{
 
 
         //menu
-        let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
-        let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
+        //let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
+        //let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
 
         //score and scrap counter
-        this.scoreCounter = this.add.bitmapText(this.game.renderer.width - 200, this.game.renderer.height - 800, 'atari-classic', 'pts: 0', 20).setDepth(2);
+        this.scoreCounter = this.add.bitmapText(this.game.renderer.width - 300, this.game.renderer.height - 800, 'atari-classic', 'pts: 0', 20).setDepth(2);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
         this.scrapIcon = this.add.image(this.game.renderer.width - 390, this.game.renderer.height - 64, "scrap").setDepth(2).setVisible(false);
         this.tooltipText = this.add.bitmapText(130, this.game.renderer.height * 0.78, 'atari-classic', 'Tooltip', 20).setVisible(false).setDepth(2);
@@ -1664,7 +1664,7 @@ export class PlayScene extends Phaser.Scene{
 
         this.updateHudStatValues();
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
-
+        /*
         menuButton.setInteractive();
         menuButton.on("pointerover", () => {
             menuButtonHover.setVisible(1);
@@ -1679,7 +1679,7 @@ export class PlayScene extends Phaser.Scene{
             this.tweens.killAll();
             this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         });
-
+        */
         this.input.on('pointermove', pointer => {
             this.mouseX = pointer.x;
             this.mouseY = pointer.y;
@@ -1709,6 +1709,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.stageManager = new StageManager(this);
 
@@ -1718,9 +1719,6 @@ export class PlayScene extends Phaser.Scene{
             frameRate: 10,
             repeat: -1,
         });
-
-        this.changeSecondary("rocket")
-
     }
 
     update() {
@@ -1776,6 +1774,12 @@ export class PlayScene extends Phaser.Scene{
                 this.ship.setDodgeReady(false);
                 this.dodgeRoll();
             }
+        }
+        if (this.keyESC.isDown) {
+            this.dropLoop.stop();
+            this.sound.stopAll();
+            this.tweens.killAll();
+            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
         }
     }
 

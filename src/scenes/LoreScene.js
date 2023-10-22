@@ -9,7 +9,7 @@ export class LoreScene extends Phaser.Scene {
     }
 
     init() {
-        this.fullText = "In the vast expanse of the cosmos, the Galactic Federation is once more in dire need of your unwavering courage and skill. A colossal armada of enemy battleships, have been detected converging perilously close to our critical base of operations. You must stand as our last line of defense, safeguarding the base as we initiate an urgent evacuation of our people. The galaxy's future depends on you.";
+        this.fullText = "In the vast expanse of the cosmos, the Galactic Federation is once more in dire need of your unwavering courage and skill. A colossal armada of enemy battleships have been detected converging perilously close to our critical base of operations. You must stand as our last line of defense, safeguarding the base as we initiate an urgent evacuation of our people. The galaxy's future depends on you.";
         this.currentText = "";
         this.textObject = this.add.text(this.game.renderer.width / 4, this.game.renderer.height * 0.20, "", {
             fontSize: "32px",
