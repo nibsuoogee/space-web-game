@@ -762,7 +762,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
     laserHitsShip() {
         if (this.isEnemyLaser && !this.ship.getInvincible()) {
-            this.ship.setHealthDelta(-this.bulletDamage/1);
+            this.ship.setHealthDelta(-this.bulletDamage/5000);
             this.scene.displayTintOverlay('0xff0000');
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
@@ -1180,7 +1180,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.lastFired = 0;
         this.maxHealth = 1000;
-        this.health = 1//000;
+        this.health = 1000;
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.bulletSpeed = 700;
@@ -1423,7 +1423,6 @@ class StageManager {
         this.stages = []
         
         this.stages.push([8, 2, 1, 0, 10, 0]);
-        this.stages.push([0, 0, 0, 0, 0, 1]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
         this.stages.push([30, 8, 20, 4, 25, 0]);
@@ -1721,7 +1720,6 @@ export class PlayScene extends Phaser.Scene{
         this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.stageManager = new StageManager(this);
-        this.changeSecondary('laserBeam')
         this.anims.create({
             key: 'shopAnimation',
             frames: this.anims.generateFrameNumbers('shop', { start: 0, end: 3 }),
