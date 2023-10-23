@@ -353,7 +353,7 @@ class Boss extends BlueEnemy {
         if (this.health <= 0) {
             this.scene.bossHealthBar.removeChildren();
             this.scene.bossHealthBar.destroy();
-            this.scene.displayParticles(this.x, this.y,'deathFireParticle');
+            this.scene.displayParticles(this.x, this.y,'deathFireParticle', 2, 2000);
             this.spawnScrap();
             this.setActive(false);
             this.setVisible(false);
@@ -392,6 +392,7 @@ class Boss extends BlueEnemy {
             this.crystalVisible = false;
             this.bossBeamLaser1.stopFiring();
             this.bossBeamLaser2.stopFiring();
+            this.rocketReady = true;
             this.currentWeapon = "rocket";
             this.bossAnimation.RocketAnimation(); 
         } else {
@@ -549,7 +550,7 @@ class Rocket extends Laser {
                 if (this.lockedOnEnemy) {
                     this.homeToEnemy();
                 }
-                if (this.x <= -300 || this.x >= this.scene.game.renderer.width +300 || this.y <= -300 || this.y >= this.scene.game.renderer.height +300) {
+                if (this.x <= -10 || this.x >= this.scene.game.renderer.width +10 || this.y <= -10 || this.y >= this.scene.game.renderer.height +10) {
                     this.setActive(false);
                     this.setVisible(false);
                 }
@@ -998,19 +999,13 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
         this.energyDrain = 0.1;
     }
     fireLaser(x, y, alpha, shooter) {
+        if (shooter !== this.scene.ship) {
+            const laser = this.getFirstDead(false);
+            if (!laser) {return;}
+            laser.fire(x, y, alpha, shooter)
+            return;
+        }
         if (!this.weaponReady || this.energyPercent < 0.1) {return;}
-        const laser = this.getFirstDead(false);
-        if (!laser) { return; }
-        this.weaponReady = false;
-        laser.fire(x, y, alpha, shooter)
-        if (this.timer) {
-            clearInterval(this.timer);
-        }
-        if (shooter === this.scene.ship) {
-            this.scene.setSecondaryPercent(this.energyPercent);
-            this.energyPercent -= this.energyDrain;
-        }
-        
         this.scene.time.addEvent({
             delay: 200,
             callback: () => {
@@ -1019,6 +1014,17 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
             callbackScope: this,
             loop: false,
         });
+        const laser = this.getFirstDead(false);
+        if (!laser) { return; }
+        this.weaponReady = false;
+        laser.fire(x, y, alpha, shooter)
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        this.scene.setSecondaryPercent(this.energyPercent);
+        this.energyPercent -= this.energyDrain;
+        
+        
         this.scene.time.addEvent({
             delay: 4000,
             callback: () => {
@@ -1040,6 +1046,7 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
             callbackScope: this,
             loop: false,
         }); 
+        
     }
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
@@ -2302,13 +2309,25 @@ export class PlayScene extends Phaser.Scene{
                 var Upgrade_3_Button = this.add.image(280*scale,275*scale, attributeAssets[Attributes[2]]).setOrigin(0).setInteractive();
                 var Upgrade_4_Button = this.add.image(320*scale,275*scale, attributeAssets[Attributes[3]]).setOrigin(0).setInteractive();
 
-                var WeaponButton = this.add.image(410*scale,190*scale, weaponAssets[randomWeapon]).setOrigin(0).setInteractive()
+                var WeaponButton = this.add.image(410*scale,186*scale, weaponAssets[randomWeapon]).setOrigin(0).setInteractive()
+                this.tweens.add({
+                    targets: WeaponButton,
+                    y: 190*scale-20,
+                    duration: 2000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'sine.inout'
+                });
+
                 this.buttons = [shopwindow, LeaveShopButton, RepairShipButton, Upgrade_1_Button, Upgrade_2_Button, Upgrade_3_Button, Upgrade_4_Button, WeaponButton];
                 //upgrades scale
                 Upgrade_1_Button.setScale(scale);
                 Upgrade_2_Button.setScale(scale);
                 Upgrade_3_Button.setScale(scale);
                 Upgrade_4_Button.setScale(scale);
+                this.buttons.forEach((button, index) => {
+                    index > 1 ? button.preFX.addShadow(-0.05, 0.1, 0.2, 1.2, 0x000000, 9) : null;
+                })
 
                 //Weapon scale
                 WeaponButton.setScale(scale);
@@ -2351,6 +2370,7 @@ export class PlayScene extends Phaser.Scene{
 
     shopSlideOut(image) {
         this.backgroundSpeed = 3;
+        this.shopIntro.stop();
         this.shopLoop.stop();
         this.buildupBar.play();
         this.buildupBar.on('complete', () => {
@@ -2376,6 +2396,7 @@ export class PlayScene extends Phaser.Scene{
         button.on("pointerover", () => {
             this.displayTooltip(this.shopItemDescription(item), true);
             this.displayUpgradeStatTooltip(item, true);
+            button.postFX.addBloom(0xffffff, 0.1, 0.1, 1.6, 1.6);
         });
         button.on('pointerup', function () {
             this.shopBuyItem(item);
@@ -2383,6 +2404,8 @@ export class PlayScene extends Phaser.Scene{
         button.on("pointerout", () => {
             this.displayTooltip("", false);
             this.displayUpgradeStatTooltip("", false);
+            button.clearFX();
+            button.preFX.addShadow(-0.05, 0.1, 0.2, 1.2, 0x000000, 9);
         });
     }
 
