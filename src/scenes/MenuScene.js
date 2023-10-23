@@ -11,8 +11,7 @@ export class MenuScene extends Phaser.Scene{
 
     }
     init(data) {
-        console.log(data);
-        console.log("I GOT IT!");
+        
     }
     preload() {
 
@@ -21,8 +20,11 @@ export class MenuScene extends Phaser.Scene{
         this.sound.volume = 0.05;
         this.add.tileSprite(0,0, this.game.renderer.width *2, this.game.renderer.height, "star_background").setOrigin(0);
         this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.28, "title_logo").setDepth(1);
-        this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.20, "title_text").setDepth(1);
-        let playButton = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text").setDepth(1);
+        this.titleText = this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.20, "title_text").setDepth(1);
+        this.titleText.preFX.addShadow(-0.2, -1.2, 0.02, 5, 0x000000, 8);
+
+        this.playButton = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text").setDepth(1);
+        this.playButton.preFX.addShadow(-0.2, -1.2, 0.02, 5, 0x000000, 8);
         let playButtonHover = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text_hover").setDepth(1).setVisible(0);
         
         this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.7, "credits").setDepth(1);
@@ -45,19 +47,17 @@ export class MenuScene extends Phaser.Scene{
         });
 
 
-        playButton.setInteractive();
+        this.playButton.setInteractive();
 
-        playButton.on("pointerover", () => {
-            console.log("hovering");
+        this.playButton.on("pointerover", () => {
             playButtonHover.setVisible(1);
         });
 
-        playButton.on("pointerout", () => {
-            console.log("off da buttton");
+        this.playButton.on("pointerout", () => {
             playButtonHover.setVisible(0);
         });
 
-        playButton.on("pointerup", () => {
+        this.playButton.on("pointerup", () => {
             this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar, "menuLoop":this.menuLoop});
             this.scene.start(CST.SCENES.LORE, "Hello to Play scene from Menu!");
 

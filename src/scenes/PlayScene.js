@@ -1111,7 +1111,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
         this.health = 50;
         this.kineticDamage = 50;
         this.body.setMass(20)
-        this.postFX.addBloom(0xffffff, 1, 1, 1, 4, 8);
+        this.postFX.addBloom(0xffffff, 0.3, 0.3, 0.3, 3, 5);
     }
     fire(x, y, alpha) {
         // spawn at at random y to right of screen
@@ -1223,8 +1223,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         });
         
         this.enemyDamageMultiplier = 1.0;
-        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 300, this.scene.game.renderer.height - 770, 'atari-classic', 'ng+ 1x', 18).setDepth(3);
-        this.gameCompletionsMultiplierText.setTint("0xff0000");
+        this.gameCompletionsMultiplierText = this.scene.add.bitmapText(this.scene.game.renderer.width - 300, this.scene.game.renderer.height - 770, 'atari-classic', '', 18).setDepth(3);
+        this.gameCompletionsMultiplierText.setTint("0x00ff00").setAlpha(0.7);
     }
     setSecondary(secondary) {this.secondary = secondary;}
     setInvincible(active) {this.invincible = active;}
@@ -1267,7 +1267,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
     getPoints() {return this.points;}
-    setPointsDelta(delta) {this.points += delta;}
+    setPointsDelta(delta) {
+        this.points += delta * this.enemyDamageMultiplier;
+    }
     getBulletDamage() {return this.bulletDamage;}
     setBulletDamageDelta(delta) {this.bulletDamage += delta;}
     getBulletSpeed() {return this.bulletSpeed;}
@@ -1291,7 +1293,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     setBulletSpeedDelta(delta) {this.bulletSpeed += delta;}
     setEnemyDamageMultiplierDelta(delta) {
         this.enemyDamageMultiplier += delta
-        this.gameCompletionsMultiplierText.setText(`ng+ ${this.enemyDamageMultiplier}x`);
+        this.gameCompletionsMultiplierText.setText(`ng+ mult. ${this.enemyDamageMultiplier}x`);
     };
     preUpdate() {
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
@@ -1421,7 +1423,6 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        
         this.stages.push([8, 2, 1, 0, 10, 0]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
@@ -1456,6 +1457,20 @@ class StageManager {
                     this.currentStage = 0; // new game+
                     this.scene.globalEnemyDamageIncrease();
                     this.scene.globalEnemyHealthIncrease();
+                    this.newGamePlusText = this.scene.add.image(this.scene.game.config.width+ 200, this.scene.game.renderer.height * 0.1, "new_game_plus").setDepth(5);
+                    this.newGamePlusText.preFX.addShadow(-0.2, -1.2, 0.02, 5, 0x000000, 8);
+                    const duration = 2000;
+                    this.scene.tweens.add({
+                        targets: this.newGamePlusText,
+                        x: this.scene.game.config.width -200,
+                        duration: duration,
+                        ease: 'Power2',
+                        repeat: 0,
+                        yoyo: true,
+                        onComplete: () => {
+                            this.newGamePlusText.destroy();
+                        },
+                    });
                 }
                 this.currentStageCopy = [...this.stages[this.currentStage]];
                 return;
