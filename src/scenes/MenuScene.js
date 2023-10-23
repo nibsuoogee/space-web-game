@@ -25,6 +25,8 @@ export class MenuScene extends Phaser.Scene{
         let playButton = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text").setDepth(1);
         let playButtonHover = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 2, "begin_text_hover").setDepth(1).setVisible(0);
         
+        this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.7, "credits").setDepth(1);
+
         this.sound.pauseOnBlur = false;        
         this.menuLoop = this.sound.add("menu_loop", {
             loop: true,

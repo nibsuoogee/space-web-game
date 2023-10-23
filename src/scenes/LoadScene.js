@@ -16,6 +16,8 @@ export class LoadScene extends Phaser.Scene{
         this.load.image("title_text", "../../assets/images/text/star fighter title.png");
         this.load.image("begin_text", "../../assets/images/text/star fighter begin button.png");
         this.load.image("begin_text_hover", "../../assets/images/text/star fighter begin button red.png");
+        this.load.image("game_over_text", "../../assets/images/text/game over.png");
+        this.load.image("esc_button", "../../assets/images/esc-button.png");
         this.load.audio("menu_loop", "../../assets/music/MUSTY-0.2-game-menu-loop.mp3");
         this.load.audio("buildup-bar", "../../assets/music/MUSTY-0.2-game-buildup-bar-filtered.mp3");
 
@@ -40,6 +42,8 @@ export class LoadScene extends Phaser.Scene{
 
         this.load.image("menu_text", "../../assets/images/text/star fighter menu button.png");
         this.load.image("menu_text_hover", "../../assets/images/text/star fighter menu button red.png");
+        this.load.image("credits", "../../assets/images/text/credits.png");
+
 
         this.load.audio("zap_gun_1", "../../assets/sfx/star-fighter-zap-gun-03.mp3");
         this.load.audio("laser_damage", "../../assets/sfx/star-fighter-laser-damage-hull.mp3");

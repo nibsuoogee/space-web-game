@@ -35,7 +35,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.health = this.maxHealth * this.scene.globalEnemyHealthMultiplier;
         this.shipLaserBeam = this.scene.beamLaser;
         this.body.reset(x,y);
-        this.displayParticles('spawnFlash');
+        this.scene.displayParticles(this.x, this.y,'spawnFlash');
         this.setDepth(1);
         this.setActive(true);
         this.setVisible(true);
@@ -82,7 +82,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     checkHealth() {
         if (this.health <= 0) {
-            this.displayParticles('deathFireParticle');
+            this.scene.displayParticles(this.x, this.y,'deathFireParticle');
             this.spawnScrap();
             this.setActive(false);
             this.setVisible(false);
@@ -92,28 +92,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.healthText.setText(`${Math.round(this.health)}`)
         }
     }
-    displayParticles(sprite) {
-        if (this.flame === undefined) {
-            this.flame = this.scene.add.particles(this.x, this.y, sprite,
-                {
-                    color: [0xffffff, 0xffffff, 0xfcf9f2, 0xfc2222],
-                    colorEase: 'quad.out',
-                    lifespan: 100,
-                    scale: { start: 1, end: 0, ease: 'sine.out' },
-                    speed: 300,
-                    advance: 800,
-                    frequency: 20,
-                    blendMode: 'ADD',
-                    duration: 300,
-                });
-                this.flame.setDepth(1);
-                this.flame.postFX.addBloom(0xfcf9f2, 1, 1, 2, 1, 6);
-            this.flame.once("complete", () => {
-                this.flame.destroy();
-                this.flame = undefined;
-            })
-        }
-    }
+    
     shootLaser(angleToShip) {
         const laserSpawnDistance = 70;
         const xOffset = Math.cos(angleToShip) * laserSpawnDistance;
@@ -288,6 +267,7 @@ class Boss extends BlueEnemy {
         this.laserAnimationReady = true;
         this.startAnimation = 1;
     }
+    getCrystalVisible() {return this.crystalVisible;}
     preUpdate(delta, time) {
         this.setVisible(false);
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
@@ -333,7 +313,7 @@ class Boss extends BlueEnemy {
         this.laserAngle += this.laserTurningClockwise ? this.laserAngleSpeed : -this.laserAngleSpeed;
         const offsetX = Math.cos(this.laserAngle) * 1025;
         const offsetY = Math.sin(this.laserAngle) * 1025;
-        if (this.scene.checkPlayerAlive()) {
+        if (this.scene.checkPlayerAlive() && this.health > 0) {
             this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y+60) + offsetY, this.laserAngle, this);
         }
 
@@ -365,12 +345,13 @@ class Boss extends BlueEnemy {
         if (this.health <= 0) {
             this.scene.bossHealthBar.removeChildren();
             this.scene.bossHealthBar.destroy();
-            this.displayParticles('deathFireParticle');
+            this.scene.displayParticles(this.x, this.y,'deathFireParticle');
             this.spawnScrap();
             this.setActive(false);
             this.setVisible(false);
             this.scene.bossNameText.setVisible(false);
             this.bossAnimation.destroy();
+            this.scene.enemyBeamLaser.stopFiring();
         } else {
             this.healthText.setVisible(false);
             this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
@@ -774,14 +755,14 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
         })
     }
     laserHitsEnemy() {
-        this.enemy.setHealthDelta(-this.bulletDamage/5000);
+        this.enemy.setHealthDelta(-this.bulletDamage/10000);
     }
     laserHitsBoss() {
-        this.scene.boss.setHealthDelta(-this.bulletDamage/5000);
+        this.scene.boss.setHealthDelta(-this.bulletDamage/10000);
     }
     laserHitsShip() {
         if (this.isEnemyLaser && !this.ship.getInvincible()) {
-            this.ship.setHealthDelta(-this.bulletDamage/5000);
+            this.ship.setHealthDelta(-this.bulletDamage/1);
             this.scene.displayTintOverlay('0xff0000');
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
@@ -1017,8 +998,6 @@ class RocketGroup extends Phaser.Physics.Arcade.Group {
         if (shooter === this.scene.ship) {
             this.scene.setSecondaryPercent(this.energyPercent);
             this.energyPercent -= this.energyDrain;
-        } else {
-            this.energyPercent -= this.energyDrain*0.01;
         }
         
         this.scene.time.addEvent({
@@ -1201,7 +1180,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.lastFired = 0;
         this.maxHealth = 1000;
-        this.health = 1000;
+        this.health = 1//000;
         this.flySpeed = 400;
         this.bulletDamage = 50;
         this.bulletSpeed = 700;
@@ -1353,7 +1332,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     hitsBoss() {
         if (!this.hasHitEnemy) {
             this.hasHitEnemy = true;
-            const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.boss);
+            const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.scene.boss);
             const bounceAngle = Phaser.Math.RadToDeg(angleToEnemy)
             this.setVelocity(Math.cos(bounceAngle) * -500, Math.sin(bounceAngle) * -500);
             this.immobilised = true;
@@ -1366,7 +1345,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 callbackScope: this,
                 loop: false,
             });
-            this.enemy.setHealthDelta(-this.hullCollisionDamage);
+            if (this.scene.boss.getCrystalVisible()) {
+                this.scene.boss.setHealthDelta(-this.hullCollisionDamage);
+            }
             this.scene.hullCollision.play();
         }
     }
@@ -1391,6 +1372,7 @@ class RechargeBar extends Phaser.Physics.Arcade.Sprite {
         this.setPercent(this.percent);
     }
     setPercent(percent) {
+        if (percent < 0) {return;}
         this.rechargeBarFill.clear();
         this.rechargeBarFill.fillStyle(this.colour);
         const fillHeight = (100+this.extraHeight) * percent;
@@ -1439,10 +1421,9 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([1, 1, 0, 0, 0, 0]);
-        this.stages.push([1, 1, 0, 0, 0, 0]);
-        this.stages.push([0, 0, 0, 0, 0, 1]);
+        
         this.stages.push([8, 2, 1, 0, 10, 0]);
+        this.stages.push([0, 0, 0, 0, 0, 1]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
         this.stages.push([30, 8, 20, 4, 25, 0]);
@@ -1683,10 +1664,6 @@ export class PlayScene extends Phaser.Scene{
         this.damageOverlay = this.add.rectangle(this.game.renderer.width / 2, this.game.renderer.height /2, this.game.renderer.width, this.game.renderer.height, 0xff0000).setVisible(0);
 
 
-        //menu
-        //let menuButton = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text").setDepth(2);
-        //let menuButtonHover = this.add.image(this.game.renderer.width / 20, this.game.renderer.height * 0.05, "menu_text_hover").setDepth(2).setVisible(0);
-
         //score and scrap counter
         this.scoreCounter = this.add.bitmapText(this.game.renderer.width - 300, this.game.renderer.height - 800, 'atari-classic', 'pts: 0', 20).setDepth(2);
         this.scrapCounter = this.add.bitmapText(this.game.renderer.width - 350, this.game.renderer.height - 73, 'atari-classic', '0', 20).setDepth(2).setVisible(false);
@@ -1711,22 +1688,7 @@ export class PlayScene extends Phaser.Scene{
 
         this.updateHudStatValues();
         let dropLoop = this.scene.get("MENU").data.get("dropLoop");
-        /*
-        menuButton.setInteractive();
-        menuButton.on("pointerover", () => {
-            menuButtonHover.setVisible(1);
-        });
-        menuButton.on("pointerout", () => {
-            menuButtonHover.setVisible(0);
-        });
-        menuButton.on("pointerup", () => {
-            dropLoop.stop();
-
-            this.sound.stopAll();
-            this.tweens.killAll();
-            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
-        });
-        */
+    
         this.input.on('pointermove', pointer => {
             this.mouseX = pointer.x;
             this.mouseY = pointer.y;
@@ -1759,7 +1721,7 @@ export class PlayScene extends Phaser.Scene{
         this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.stageManager = new StageManager(this);
-
+        this.changeSecondary('laserBeam')
         this.anims.create({
             key: 'shopAnimation',
             frames: this.anims.generateFrameNumbers('shop', { start: 0, end: 3 }),
@@ -1922,6 +1884,7 @@ export class PlayScene extends Phaser.Scene{
         this.healthPercent.setText(`HP: ${Math.round(health)}%`);
         if (health <= 0) {
             if (!this.playerDeathHasPlayed) {
+
                 this.playerDeath();
                 this.playerDeathHasPlayed = true;
             }
@@ -1947,7 +1910,26 @@ export class PlayScene extends Phaser.Scene{
     }
 
     playerDeath() {
-        this.dropLoop.stop();
+        this.displayParticles(this.ship.x, this.ship.y, 'deathFireParticle', 2, 2000);
+        this.ship.setVisible(false);
+        this.gameOverText = this.add.image(this.game.renderer.width/2, this.game.renderer.height * 0.4, "game_over_text").setDepth(5).setScale(2,2);
+        this.gameOverText.preFX.addShadow(-0.2, -1.2, 0.02, 5, 0x000000, 8);
+        let menuButton = this.add.image(this.game.renderer.width/2, this.game.renderer.height * 0.5, "menu_text").setDepth(2).setScale(2,2);
+        let menuButtonHover = this.add.image(this.game.renderer.width/2, this.game.renderer.height * 0.5, "menu_text_hover").setDepth(2).setScale(2,2).setVisible(0);
+        this.add.image(this.game.renderer.width / 2, this.game.renderer.height * 0.7, "credits").setDepth(1);
+        menuButton.setInteractive();
+        menuButton.on("pointerover", () => {
+            menuButtonHover.setVisible(1);
+        });
+        menuButton.on("pointerout", () => {
+            menuButtonHover.setVisible(0);
+        });
+        menuButton.on("pointerup", () => {
+            this.dropLoop.stop();
+            this.sound.stopAll();
+            this.tweens.killAll();
+            this.scene.start(CST.SCENES.MENU, "Hello to Menu scene from play!");
+        });
     }
 
     shootWeaponByGroup(weaponGroup) {
@@ -2036,6 +2018,31 @@ export class PlayScene extends Phaser.Scene{
         //}
     }
 
+    displayParticles(x, y, sprite, scale, duration) {
+        let flameDuration = duration ? duration : 300;
+        let flameScale = scale ? scale : 1;
+        if (this.flame === undefined) {
+            this.flame = this.add.particles(x, y, sprite,
+                {
+                    color: [0xffffff, 0xffffff, 0xfcf9f2, 0xfc2222],
+                    colorEase: 'quad.out',
+                    lifespan: 100,
+                    scale: { start: flameScale, end: 0, ease: 'sine.out' },
+                    speed: 300,
+                    advance: 800,
+                    frequency: 20,
+                    blendMode: 'ADD',
+                    duration: flameDuration,
+                });
+                this.flame.setDepth(1);
+                this.flame.postFX.addBloom(0xfcf9f2, 1, 1, 2, 1, 6);
+            this.flame.once("complete", () => {
+                this.flame.destroy();
+                this.flame = undefined;
+            })
+        }
+    }
+
     displayTooltip(tooltipText, active) {
         if (active) {
             this.tooltipText.setText(tooltipText);
@@ -2049,6 +2056,7 @@ export class PlayScene extends Phaser.Scene{
         this.greenUpgradeStat.setText(`+${10}`);
         this.redUpgradeCost.setText(`-${150}`);
         if (item == "EngineUpgrade") {
+            this.greenUpgradeStat.setText(`+${15}`);
             this.greenUpgradeStat.y = this.game.renderer.height - 20;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "HealthUpgrade") {
