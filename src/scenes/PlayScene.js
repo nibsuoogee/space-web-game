@@ -1101,7 +1101,7 @@ class Scrap extends Phaser.Physics.Arcade.Sprite {
 class HealthKit extends Scrap {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
-        this.healthValue = 100;
+        this.healthValue = 50;
         this.maxScale = 0.5;
         this.setScale(this.maxScale);
     }
@@ -1434,12 +1434,15 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
+        this.stages.push([1, 0, 0, 0, 0, 0]);
         this.stages.push([0, 0, 0, 0, 0, 1]);
+        /*
         this.stages.push([8, 2, 1, 0, 10, 0]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
         this.stages.push([30, 8, 20, 4, 25, 0]);
         this.stages.push([3, 0, 0, 0, 0, 1]);
+        */
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
     }
