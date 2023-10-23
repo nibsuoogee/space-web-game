@@ -63,6 +63,7 @@ export class LoadScene extends Phaser.Scene{
         });
         this.load.image('beamLaser', "../../assets/images/star fighter max long blue.png");
         this.load.image('beamLaserRed', "../../assets/images/star fighter max long red.png");
+        this.load.image('beamLaserGreen', "../../assets/images/star fighter max long green.png");
         this.load.spritesheet('bomb', "../../assets/images/BlackHoleBombSprite.png", {
             frameWidth: 13,
             frameHeight: 13,

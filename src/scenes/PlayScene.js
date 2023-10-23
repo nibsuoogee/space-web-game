@@ -148,6 +148,7 @@ class BlueEnemy extends Enemy {
         this.aimAngle = 0;
         this.maxHealth = 150;
         this.bulletDamage = 40;
+        this.enemyBeamLaser = new BeamLaser(this.scene, 0, 0, 'beamLaserRed', true);
     }
     preUpdate() {
         const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
@@ -164,15 +165,15 @@ class BlueEnemy extends Enemy {
             if (this.scene.checkPlayerAlive()) {
                 const offsetX = Math.cos(this.aimAngle) * 1080;
                 const offsetY = Math.sin(this.aimAngle) * 1080;
-                this.scene.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle, this);
+                this.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle, this);
             }
         }
         if (this.timeSinceShot <= 0) {
             this.timeSinceShot = this.gunDelay;
-            this.scene.enemyBeamLaser.stopFiring();
+            this.enemyBeamLaser.stopFiring();
         }
         if (this.health <= 0) {
-            this.scene.enemyBeamLaser.stopFiring();
+            this.enemyBeamLaser.stopFiring();
         }
     }
 }
@@ -249,8 +250,10 @@ class Boss extends BlueEnemy {
         this.timeSinceShot = 8;
         this.currentWeapon = "laserBeam";
         this.bossAnimation.BeamAnimation();
+        this.bossBeamLaser1 = new BeamLaser(this.scene, 0, 0, 'beamLaserGreen', true);
+        this.bossBeamLaser2 = new BeamLaser(this.scene, 0, 0, 'beamLaserGreen', true);
         this.laserAngle = 0;
-        this.laserAngleSpeed = 0.01;
+        this.laserAngleSpeed = 0.004;
         this.laserTurningClockwise = true;
         this.rocketDelay = 200;
         this.rocketReady = true;
@@ -270,10 +273,6 @@ class Boss extends BlueEnemy {
     getCrystalVisible() {return this.crystalVisible;}
     preUpdate(delta, time) {
         this.setVisible(false);
-        const angleToShip = Phaser.Math.Angle.BetweenPoints(this, this.ship);
-        //this.angle = Phaser.Math.RadToDeg(this.aimAngle)+90;
-        const rotationSpeed = 0.02;
-        this.aimAngle += Phaser.Math.Angle.Wrap(angleToShip - this.aimAngle) * rotationSpeed;
         this.checkHealth();
         if (this.currentWeapon === "laserBeam") {
             this.laserBeamPreUpdate();
@@ -310,11 +309,20 @@ class Boss extends BlueEnemy {
         if (!this.laserTurningClockwise && this.laserAngle <= -0.35) {
             this.laserTurningClockwise = true;
         }
+        if (!this.fireBothLasers) {
+            this.laserAngle += this.laserTurningClockwise ? this.laserAngleSpeed*1.3 : -this.laserAngleSpeed*1.3;
+        }
         this.laserAngle += this.laserTurningClockwise ? this.laserAngleSpeed : -this.laserAngleSpeed;
         const offsetX = Math.cos(this.laserAngle) * 1025;
         const offsetY = Math.sin(this.laserAngle) * 1025;
+        this.laserAngle2 = -(this.laserAngle+0.35)+3.5;
+        const offset2X = Math.cos(this.laserAngle2) * 1025;
+        const offset2Y = Math.sin(this.laserAngle2) * 1025;
         if (this.scene.checkPlayerAlive() && this.health > 0) {
-            this.scene.enemyBeamLaser.fire(this.x + offsetX, (this.y+60) + offsetY, this.laserAngle, this);
+            this.bossBeamLaser1.fire(this.x + offsetX, (this.y+60) + offsetY, this.laserAngle, this);
+            if (this.fireBothLasers) {
+                this.bossBeamLaser2.fire(this.x + offset2X, (this.y+60) + offset2Y, this.laserAngle2, this);
+            }
         }
 
     }
@@ -351,7 +359,8 @@ class Boss extends BlueEnemy {
             this.setVisible(false);
             this.scene.bossNameText.setVisible(false);
             this.bossAnimation.destroy();
-            this.scene.enemyBeamLaser.stopFiring();
+            this.bossBeamLaser1.stopFiring();
+            this.bossBeamLaser2.stopFiring();
         } else {
             this.healthText.setVisible(false);
             this.scene.bossHealthBar.setPercent(this.health/this.maxHealth);
@@ -381,11 +390,13 @@ class Boss extends BlueEnemy {
         //const lottery = Math.random();
         if (this.currentWeapon === "laserBeam") {
             this.crystalVisible = false;
-            this.scene.enemyBeamLaser.stopFiring()
+            this.bossBeamLaser1.stopFiring();
+            this.bossBeamLaser2.stopFiring();
             this.currentWeapon = "rocket";
             this.bossAnimation.RocketAnimation(); 
         } else {
             this.crystalVisible = true;
+            this.fireBothLasers = Math.random() < 0.5 ? true : false;
             this.currentWeapon = "laserBeam";
             this.bossAnimation.BeamAnimation();
         }
@@ -1423,6 +1434,7 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
+        this.stages.push([0, 0, 0, 0, 0, 1]);
         this.stages.push([8, 2, 1, 0, 10, 0]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
