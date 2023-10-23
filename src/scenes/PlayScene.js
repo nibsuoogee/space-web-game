@@ -268,7 +268,7 @@ class Boss extends BlueEnemy {
         this.weaponCycleDelay = 4000;
         this.weaponCycleReady = true;
         this.timeSinceShot = 8;
-        this.currentWeapon = "rocket";
+        this.currentWeapon = "laserBeam";
         this.bossAnimation.BeamAnimation();
         this.laserAngle = 0;
         this.laserAngleSpeed = 0.01;
@@ -283,7 +283,8 @@ class Boss extends BlueEnemy {
             3: 160
         }
         this.setBodySize(40, 40, true);
-        this.setOffset(200,130)
+        this.setOffset(200,130);
+        this.crystalVisible = true;
         this.laserAnimationReady = true;
         this.startAnimation = 1;
     }
@@ -314,6 +315,12 @@ class Boss extends BlueEnemy {
                 callbackScope: this,
                 repeat: false,
             });
+        }
+    }
+    setHealthDelta(delta) {
+        if (this.crystalVisible) {
+            this.health += delta;
+            this.flashWhenTakingDamage();
         }
     }
     laserBeamPreUpdate() {
@@ -390,13 +397,14 @@ class Boss extends BlueEnemy {
         });
     }
     cycleRandomWeapon() {
-        const lottery = Math.random();
+        //const lottery = Math.random();
         if (this.currentWeapon === "laserBeam") {
+            this.crystalVisible = false;
             this.scene.enemyBeamLaser.stopFiring()
             this.currentWeapon = "rocket";
             this.bossAnimation.RocketAnimation(); 
-
         } else {
+            this.crystalVisible = true;
             this.currentWeapon = "laserBeam";
             this.bossAnimation.BeamAnimation();
         }
@@ -410,6 +418,20 @@ class Boss extends BlueEnemy {
             this.currentWeapon = "rocket";
         }
         */
+    }
+    flashWhenTakingDamage() {
+        this.bossAnimation.setTint('0xff0000');
+        this.scene.tweens.add({
+            targets: this.bossAnimation,
+            alpha: 1,
+            duration: 20,
+            yoyo: true,
+            repeat: 0,
+            ease: 'sine.inout',
+            onComplete: () => {
+                this.bossAnimation.clearTint();
+            }
+        });
     }
 }
 
@@ -1182,7 +1204,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.health = 1000;
         this.flySpeed = 400;
         this.bulletDamage = 50;
-        this.bulletSpeed = 900;
+        this.bulletSpeed = 700;
         this.fireRate = 250;
 
         this.hullCollisionDamage = 20;
@@ -1297,7 +1319,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.rainbowEnemyGroup);
-        
+        if (this.scene.boss && this.scene.boss.active) {
+            this.scene.physics.world.overlap(this, this.scene.boss, this.hitsBoss, null, this);
+        }
     }
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
@@ -1325,6 +1349,26 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.scene.hullCollision.play();
         }
         
+    }
+    hitsBoss() {
+        if (!this.hasHitEnemy) {
+            this.hasHitEnemy = true;
+            const angleToEnemy = Phaser.Math.Angle.BetweenPoints(this, this.boss);
+            const bounceAngle = Phaser.Math.RadToDeg(angleToEnemy)
+            this.setVelocity(Math.cos(bounceAngle) * -500, Math.sin(bounceAngle) * -500);
+            this.immobilised = true;
+            this.scene.time.addEvent({
+                delay: 300,
+                callback: () => {
+                    this.hasHitEnemy = false;
+                    this.immobilised = false;
+                },
+                callbackScope: this,
+                loop: false,
+            });
+            this.enemy.setHealthDelta(-this.hullCollisionDamage);
+            this.scene.hullCollision.play();
+        }
     }
 }
 
@@ -1395,6 +1439,9 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
+        this.stages.push([1, 1, 0, 0, 0, 0]);
+        this.stages.push([1, 1, 0, 0, 0, 0]);
+        this.stages.push([0, 0, 0, 0, 0, 1]);
         this.stages.push([8, 2, 1, 0, 10, 0]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
@@ -2005,26 +2052,38 @@ export class PlayScene extends Phaser.Scene{
             this.greenUpgradeStat.y = this.game.renderer.height - 20;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "HealthUpgrade") {
+            this.greenUpgradeStat.setText(`+${100}`);
             this.greenUpgradeStat.y = this.game.renderer.height - 120;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "FireRateUpgrade") {
+            this.greenUpgradeStat.setText(`+${10}`);
             this.greenUpgradeStat.y = this.game.renderer.height - 80;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "DamageUpgrade") {
             this.greenUpgradeStat.y = this.game.renderer.height - 100;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "HullCollisionUpgrade") {
+            this.greenUpgradeStat.setText(`+${15}`);
             this.greenUpgradeStat.y = this.game.renderer.height - 40;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "BulletSpeedUpgrade") {
+            this.greenUpgradeStat.setText(`+${50}`);
             this.greenUpgradeStat.y = this.game.renderer.height - 60;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
         } else if (item == "Repair") {
             this.greenUpgradeStat.y = this.game.renderer.height - 120;
             this.greenUpgradeStat.x = this.game.renderer.width - 60;
+
+            const scrap = this.ship.getScrap();
             const healthDelta = this.ship.getMaxHealth() - this.ship.getHealth();
-            this.greenUpgradeStat.setText(`+${Math.round(healthDelta)}%`);
-            this.redUpgradeCost.setText(`-${Math.round(healthDelta * 0.2)}`);
+            if (scrap < healthDelta * 0.2) { // if less scrap than required for full repair
+                this.greenUpgradeStat.setText(`+${Math.round(scrap/0.2)}%`);
+                this.redUpgradeCost.setText(`-${Math.round(scrap)}`);
+            } else {
+                this.greenUpgradeStat.setText(`+${Math.round(healthDelta)}%`);
+                this.redUpgradeCost.setText(`-${Math.round(healthDelta * 0.2)}`);
+            }
+            
         } else if (item == "Exit") {
             this.greenUpgradeStat.setText("");
             this.redUpgradeCost.setText("");
@@ -2095,13 +2154,18 @@ export class PlayScene extends Phaser.Scene{
             this.shopUpgradeMeaty.play();
         } else if(purchase == "BulletSpeedUpgrade"){
             if (this.ship.getScrap() < 150) {return;}
-            this.ship.setBulletSpeedDelta(200);
+            this.ship.setBulletSpeedDelta(50);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "Repair") {
-            const cost = this.ship.getMaxHealth() - this.ship.getHealth();
-            if (this.ship.getScrap() < cost * 0.2) {return;}
-            this.subtractPlayerScrap(Math.round(cost * 0.2));
+            const scrap = this.ship.getScrap();
+            const healthDelta = this.ship.getMaxHealth() - this.ship.getHealth();
+            if (scrap < healthDelta * 0.2) { // if less scrap than required for full repair
+                this.ship.setMaxHealthDelta(Math.round(scrap/0.2));
+                this.subtractPlayerScrap(scrap);
+                return;
+            }
+            this.subtractPlayerScrap(Math.round(healthDelta * 0.2));
             this.ship.resetHealth();
             this.repairHammer.play();
             this.repairDrill.play();
