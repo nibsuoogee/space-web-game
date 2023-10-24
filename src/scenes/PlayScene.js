@@ -147,7 +147,7 @@ class BlueEnemy extends Enemy {
         this.recharge = 0.01;
         this.aimAngle = 0;
         this.maxHealth = 150;
-        this.bulletDamage = 40;
+        this.bulletDamage = 10;
         this.enemyBeamLaser = new BeamLaser(this.scene, 0, 0, 'beamLaserRed', true);
     }
     preUpdate() {
@@ -774,7 +774,7 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
     }
     laserHitsShip() {
         if (this.isEnemyLaser && !this.ship.getInvincible()) {
-            this.ship.setHealthDelta(-this.bulletDamage/5000);
+            this.ship.setHealthDelta(-this.bulletDamage/200);
             this.scene.displayTintOverlay('0xff0000');
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
