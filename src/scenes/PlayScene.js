@@ -1,3 +1,4 @@
+// Elias Syyrilä & Matias Tarvainen
 import { CST } from "../CST.js";
 
 class Enemy extends Phaser.Physics.Arcade.Sprite {
@@ -239,10 +240,10 @@ class EnemyGroup extends Phaser.Physics.Arcade.Group {
 class Boss extends BlueEnemy {
     constructor(scene, x, y, sprite) {
         super(scene, x, y, sprite);
-        this.bossAnimation = new BossAnimation(this.scene, x, y, sprite);
-        scene.add.existing(this.bossAnimation);
         this.setActive(false);
         this.setVisible(false);
+        this.bossAnimation = new BossAnimation(this.scene, x, -100, sprite);
+        scene.add.existing(this.bossAnimation);
         this.maxHealth = 4000 * this.scene.globalEnemyHealthMultiplier;
         this.bulletDamage = 20;
         this.weaponCycleDelay = 4000;
@@ -269,6 +270,7 @@ class Boss extends BlueEnemy {
         this.crystalVisible = true;
         this.laserAnimationReady = true;
         this.startAnimation = 1;
+        this.entryTweenReady = false;
     }
     getCrystalVisible() {return this.crystalVisible;}
     preUpdate(delta, time) {
@@ -303,6 +305,7 @@ class Boss extends BlueEnemy {
         }
     }
     laserBeamPreUpdate() {
+        if (!this.entryTweenReady) {return;}
         if (this.laserTurningClockwise && this.laserAngle >= 3.5) {
             this.laserTurningClockwise = false;
         }
@@ -464,7 +467,9 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         if (!this.hasHit) {
-            this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
+            if (this.shooter !== this.scene.ship) {
+                this.scene.physics.world.overlap(this, this.ship, this.laserHitsShip, null, this);
+            }
             this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
             this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
             this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
@@ -779,6 +784,16 @@ class BeamLaser extends Phaser.Physics.Arcade.Sprite {
             if (!this.scene.playerEatinglaserBeam.isPlaying) {
                this.scene.playerEatinglaserBeam.play(); 
             }
+            this.shipEatingLaserDelay ? this.shipEatingLaserDelay.remove() : null;
+            this.shipEatingLaserDelay = this.scene.time.addEvent({
+                delay: 100,
+                callback: () => {
+                    this.scene.playerEatinglaserBeam.stop(); 
+                    this.scene.playerEatingLaserBeamEnd.play();  
+                },
+                callbackScope: this,
+                repeat: false,
+            });
         }
     }
 }
@@ -1602,7 +1617,19 @@ class BossAnimation extends Phaser.Physics.Arcade.Sprite{
             frameRate: 10,
             repeat: -1,
         });
-
+        
+        const duration = 1500;
+        this.scene.tweens.add({
+            targets: this,
+            y: 100,
+            duration: duration,
+            ease: 'Power2',
+            repeat: 0,
+            onComplete: () => {
+                this.scene.boss.setPosition(this.scene.game.renderer.width / 2, 100);
+                this.scene.boss.entryTweenReady = true;
+            },
+        });
     }
     BeamAnimation(){
         this.anims.play('StartBossBeamAnimation');
@@ -1646,6 +1673,7 @@ export class PlayScene extends Phaser.Scene{
     preload() {
 
     }
+
 
     create() {
         this.inShop = false;
@@ -2436,7 +2464,7 @@ export class PlayScene extends Phaser.Scene{
 
     spawnBoss() {
         this.boss = new Boss(this, this.game.renderer.width / 2, 100, "Boss");
-        this.boss.spawn(this.game.renderer.width / 2, 100, this.ship, this.laserGroupRed);
+        this.boss.spawn(this.game.renderer.width / 2, -100, this.ship, this.laserGroupRed);
         this.bossHealthBar = new BossHealthBar(this, 450, this.game.renderer.height*0.9, 'skullIcon', '0xbb0000');
         this.bossNameText.setText("B.B.W. (Big Beautiful Warship)");
         this.bossNameText.setVisible(true);

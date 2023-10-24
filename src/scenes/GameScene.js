@@ -1,3 +1,4 @@
+// Elias Syyrilä & Matias Tarvainen
 import { CST } from "../CST.js";
 
 class Player extends Phaser.Physics.Arcade.Sprite {

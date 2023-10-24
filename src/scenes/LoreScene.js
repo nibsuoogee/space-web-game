@@ -1,5 +1,5 @@
+// Elias Syyrilä & Matias Tarvainen
 import { CST } from "../CST.js";
-import { MenuScene } from "./MenuScene.js";
 
 export class LoreScene extends Phaser.Scene {
     constructor() {

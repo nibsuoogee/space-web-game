@@ -1,5 +1,4 @@
-/** @type {import("../typings/phaser")} */
-//import Phaser from 'phaser';
+// Elias Syyrilä & Matias Tarvainen
 import {LoadScene} from "./scenes/LoadScene.js";
 import {MenuScene} from "./scenes/MenuScene.js";
 import {PlayScene} from "./scenes/PlayScene.js";
@@ -25,22 +24,6 @@ let game = new Phaser.Game({
     ]
 });
 
-let GameState = {
-    preload: function() {
-
-    },
-    create: function() {
-
-    },
-    update: function() { // 60 fps/ 16ms
-
-    }
-};
-
 document.addEventListener('contextmenu', (event) => {
     event.preventDefault();
 });
-/*
-game.state.add('GameState', GameState);
-game.state.start('GameState');
-*/

@@ -1,3 +1,4 @@
+// Elias Syyrilä & Matias Tarvainen
 import { CST } from "../CST.js";
 export class MenuScene extends Phaser.Scene{
     constructor() {

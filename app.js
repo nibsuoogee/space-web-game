@@ -1,5 +1,3 @@
-//const express = require('express');
-//const path = require('path');
 
 import express from 'express';
 import path from 'path';
@@ -13,7 +11,7 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '/index.html')); // Provide the correct path
+  res.sendFile(path.join(__dirname, '/index.html'));
 });
 
 app.listen(port, () => {
