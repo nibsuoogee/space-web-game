@@ -1128,6 +1128,7 @@ class HealthKit extends Scrap {
         this.setScale(this.maxScale);
     }
     AbsorbIntoPlayer() {
+        this.scene.repairHammer.play();
         this.ship.setHealthDelta(this.healthValue);
         this.setActive(false);
         this.setVisible(false);
