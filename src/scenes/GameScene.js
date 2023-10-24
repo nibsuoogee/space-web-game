@@ -44,13 +44,13 @@ export class GameScene extends Phaser.Scene {
             key: CST.SCENES.GAME
         });
     }
-
     preload() {
         //this.load.image('sky', 'assets/sky.png');
-        this.load.spritesheet('player', 'assets/images/SpriteAnimationFixed.png', {
+        this.load.spritesheet('player', 'assets/images/ShipSprite.png', {
             frameWidth: 180,
             frameHeight: 70,
         });
+        /*
         this.load.image('projectile', "../../assets/images/star fighter laser long blue.png");
         this.load.image('enemy', "../../assets/images/enemy.png");
         this.load.image('enemyProjectile', "../../assets/images/star fighter laser long red.png");
@@ -64,8 +64,122 @@ export class GameScene extends Phaser.Scene {
         this.load.image('LeaveShop', "../../assets/images/LeaveShop.png");
         this.load.image('MissileUpgrade', "../../assets/images/MissileUpgrade.png");
         this.load.image('RepairShip', "../../assets/images/RepairShip.png");
+        */
     }
+    create() {
+        this.keys = this.input.keyboard.addKeys("W,A,S,D");
+        this.player = new Player(this, (window.innerWidth - 100) / 2, (window.innerHeight - 300) / 2);
+        this.player.setCollideWorldBounds(true);
 
+        this.anims.create({
+            key: 'thrustersOn',
+            frames: this.anims.generateFrameNumbers('player', {
+                start: 0,
+                end: 4,
+            }),
+            frameRate: 10,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: 'still',
+            frames: [{
+                key: 'player',
+                frame: 5,
+            }],
+            frameRate: 40,
+        });
+        /*
+        this.enemies = this.physics.add.group();
+        this.enemyProjectiles = this.physics.add.group();
+        this.physics.world.enable(this.enemies);
+
+
+
+        this.projectiles = this.physics.add.group({
+            classType: Phaser.Physics.Arcade.Sprite, // Use a custom class for projectiles if needed
+            allowGravity: false,
+            collideWorldBounds: false, // Disable collision with world bounds
+        });
+
+        this.isShooting = false;
+        this.fireRate = 250;
+        this.lastFired = 0;
+        this.shootFromFirstPosition = true;
+
+        this.input.on('pointerdown', () => this.isShooting = true);
+        this.input.on('pointerup', () => this.isShooting = false);
+
+        this.enemySpawnTimer = this.time.addEvent({
+            delay: 2000,
+            callback: () => this.spawnEnemy(200,200, this.player),
+            callbackScope: this,
+            loop: true,
+        });
+        */
+    }
+    update(time) {
+        //this.closePopup;
+
+        this.player.setVelocity(0, 0);
+
+        const angle = Phaser.Math.Angle.BetweenPoints(this.player, this.input.mousePointer);
+        this.player.rotation = angle;
+
+        if (this.keys.A.isDown || this.keys.D.isDown || this.keys.W.isDown || this.keys.S.isDown) {
+            this.player.anims.play('thrustersOn', true);
+            if (this.keys.A.isDown) {
+                this.player.setVelocityX(-500);
+            }
+            if (this.keys.D.isDown) {
+                this.player.setVelocityX(500);
+            }
+            if (this.keys.W.isDown) {
+                this.player.setVelocityY(-500);
+            }
+            if (this.keys.S.isDown) {
+                this.player.setVelocityY(500);
+            }
+        } else {
+            this.player.setVelocity(0, 0);
+            this.player.anims.play('still', true);
+        }
+        /*
+        if (this.isShooting && time - this.lastFired > this.fireRate) {
+            this.shootProjectile();
+            this.lastFired = time;
+        }
+
+        this.enemies.getChildren().forEach(enemy => {
+            const speed = 100;
+            const timeBetweenShots = 2000;
+
+            const angleToPlayer = Phaser.Math.Angle.BetweenPoints(enemy, this.player);
+
+            enemy.setVelocity(Math.cos(angleToPlayer) * speed, Math.sin(angleToPlayer) * speed);
+
+            if (time - (enemy.lastShotTime || 0) > timeBetweenShots) {
+                this.enemyShootProjectile(enemy,this.player);
+                enemy.lastShotTime = time;
+            }
+        });
+
+
+        this.physics.world.enable([this.projectiles, this.enemies]);
+
+        this.physics.world.collide(this.player, this.enemies, this.playerEnemyCollision, null, this);
+        var enemyKilled = this.physics.world.collide(this.projectiles, this.enemies, this.projectileEnemyCollision, null, this);
+        this.physics.world.collide(this.enemyProjectiles, this.player, this.projectilePlayerCollision, null, this);
+
+        if (enemyKilled) {
+            console.log("Enemy spawn timer removed");
+            this.enemySpawnTimer.remove();
+            this.shopSlideIn();
+            enemyKilled = 0;
+
+        }
+        */
+    }
     shopSlideIn(){
 
         this.load.image('shop', "../../assets/images/shop.png");
@@ -157,7 +271,6 @@ export class GameScene extends Phaser.Scene {
         
         
     }
-
     // Function to slide out buttons and shop window
     slideOutTweenButtons(button1, button2, button3, button4, button5, button6, button7, shopwindow) {
         // Create tweens to slide out buttons and shop window
@@ -177,7 +290,6 @@ export class GameScene extends Phaser.Scene {
             });
         }
     }
-
     shopSlideOut(image) {
         this.slideOutTween = this.tweens.add({
             targets: image,
@@ -193,121 +305,6 @@ export class GameScene extends Phaser.Scene {
     
         this.slideOutTween.play();
     }
-
-    create() {
-        this.keys = this.input.keyboard.addKeys("W,A,S,D");
-        this.player = new Player(this, (window.innerWidth - 100) / 2, (window.innerHeight - 300) / 2);
-        this.player.setCollideWorldBounds(true);
-
-        this.enemies = this.physics.add.group();
-        this.enemyProjectiles = this.physics.add.group();
-        this.physics.world.enable(this.enemies);
-
-        this.anims.create({
-            key: 'thrustersOn',
-            frames: this.anims.generateFrameNumbers('player', {
-                start: 0,
-                end: 4,
-            }),
-            frameRate: 10,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: 'still',
-            frames: [{
-                key: 'player',
-                frame: 5,
-            }],
-            frameRate: 20,
-        });
-
-        this.projectiles = this.physics.add.group({
-            classType: Phaser.Physics.Arcade.Sprite, // Use a custom class for projectiles if needed
-            allowGravity: false,
-            collideWorldBounds: false, // Disable collision with world bounds
-        });
-
-        this.isShooting = false;
-        this.fireRate = 250;
-        this.lastFired = 0;
-        this.shootFromFirstPosition = true;
-
-        this.input.on('pointerdown', () => this.isShooting = true);
-        this.input.on('pointerup', () => this.isShooting = false);
-
-        this.enemySpawnTimer = this.time.addEvent({
-            delay: 2000,
-            callback: () => this.spawnEnemy(200,200, this.player),
-            callbackScope: this,
-            loop: true,
-        });
-
-    }
-
-
-    update(time) {
-        this.closePopup;
-
-        this.player.setVelocity(0, 0);
-
-        const angle = Phaser.Math.Angle.BetweenPoints(this.player, this.input.mousePointer);
-        this.player.rotation = angle;
-
-        if (this.keys.A.isDown || this.keys.D.isDown || this.keys.W.isDown || this.keys.S.isDown) {
-            this.player.anims.play('thrustersOn', true);
-            if (this.keys.A.isDown) {
-                this.player.setVelocityX(-500);
-            }
-            if (this.keys.D.isDown) {
-                this.player.setVelocityX(500);
-            }
-            if (this.keys.W.isDown) {
-                this.player.setVelocityY(-500);
-            }
-            if (this.keys.S.isDown) {
-                this.player.setVelocityY(500);
-            }
-        } else {
-            this.player.setVelocity(0, 0);
-            this.player.anims.play('still', true);
-        }
-        if (this.isShooting && time - this.lastFired > this.fireRate) {
-            this.shootProjectile();
-            this.lastFired = time;
-        }
-
-        this.enemies.getChildren().forEach(enemy => {
-            const speed = 100;
-            const timeBetweenShots = 2000;
-
-            const angleToPlayer = Phaser.Math.Angle.BetweenPoints(enemy, this.player);
-
-            enemy.setVelocity(Math.cos(angleToPlayer) * speed, Math.sin(angleToPlayer) * speed);
-
-            if (time - (enemy.lastShotTime || 0) > timeBetweenShots) {
-                this.enemyShootProjectile(enemy,this.player);
-                enemy.lastShotTime = time;
-            }
-        });
-
-
-        this.physics.world.enable([this.projectiles, this.enemies]);
-
-        this.physics.world.collide(this.player, this.enemies, this.playerEnemyCollision, null, this);
-        var enemyKilled = this.physics.world.collide(this.projectiles, this.enemies, this.projectileEnemyCollision, null, this);
-        this.physics.world.collide(this.enemyProjectiles, this.player, this.projectilePlayerCollision, null, this);
-
-        if (enemyKilled) {
-            console.log("Enemy spawn timer removed");
-            this.enemySpawnTimer.remove();
-            this.shopSlideIn();
-            enemyKilled = 0;
-
-        }
-    }
-
-
     shootProjectile() {
         const xOffset1 = 110;
         const yOffset1 = -7;
@@ -420,6 +417,4 @@ export class GameScene extends Phaser.Scene {
         this.enemies.add(enemy);
         return enemy;
     }
-
-
 }

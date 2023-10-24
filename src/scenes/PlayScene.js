@@ -163,8 +163,8 @@ class BlueEnemy extends Enemy {
         this.timeSinceShot -= this.recharge;
         if (this.timeSinceShot <= 2) {
             if (this.scene.checkPlayerAlive()) {
-                const offsetX = Math.cos(this.aimAngle) * 1080;
-                const offsetY = Math.sin(this.aimAngle) * 1080;
+                const offsetX = Math.cos(this.aimAngle) * 1040;
+                const offsetY = Math.sin(this.aimAngle) * 1040;
                 this.enemyBeamLaser.fire(this.x + offsetX, this.y + offsetY, this.aimAngle, this);
             }
         }
@@ -1182,9 +1182,9 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-class Player extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, sprite) {
-        super(scene, x, y, sprite);
+class Ship extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'ship');
         scene.add.existing(this);
         scene.physics.world.enable(this);
         this.setDepth(2);
@@ -1313,7 +1313,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.enemyDamageMultiplier += delta
         this.gameCompletionsMultiplierText.setText(`ng+ mult. ${this.enemyDamageMultiplier}x`);
     };
-    preUpdate() {
+    
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
         this.iterateOverEnemyTypeGroup(this.scene.enemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.orangeEnemyGroup);
         this.iterateOverEnemyTypeGroup(this.scene.blueEnemyGroup);
@@ -1322,6 +1324,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.scene.physics.world.overlap(this, this.scene.boss, this.hitsBoss, null, this);
         }
     }
+    
     iterateOverEnemyTypeGroup(group) {
         group.children.iterate((enemy) => {
             this.enemy = enemy;
@@ -1441,24 +1444,35 @@ class StageManager {
         this.readyForNextStage = true;
         // this.stageX = [default, orange, blue, rainbow, asteroid, boss] enemy types
         this.stages = []
-        this.stages.push([1, 0, 0, 0, 0, 0]);
-        this.stages.push([0, 0, 0, 0, 0, 1]);
-        /*
         this.stages.push([8, 2, 1, 0, 10, 0]);
         this.stages.push([12, 6, 6, 2, 15, 0]);
         this.stages.push([20, 6, 15, 3, 20, 0]);
         this.stages.push([30, 8, 20, 4, 25, 0]);
-        this.stages.push([3, 0, 0, 0, 0, 1]);
-        */
+        this.stages.push([3, 0, 0, 0, 3, 1]);
         this.currentStage = 0;
         this.currentStageCopy = [...this.stages[this.currentStage]];
     }
     setReadyForNextStage(active) {
         this.readyForNextStage = active;
+        this.scene.setInShop(false);
+        const newBackgroudHue = Math.random()*360;
         this.backgroundfx = this.scene.background.preFX.addColorMatrix();
-        this.backgroundfx.hue(Math.random()*360);
+        this.backgroundfx.hue(newBackgroudHue);
+        this.backgroundfx.alpha = 0;
+        this.scene.tweens.add({
+            targets: this.backgroundfx,
+            alpha: 1,
+            duration: 2000,
+            ease: 'Power2',
+            repeat: 0,
+            onComplete: () => {
+                this.backgroundfx.hue(newBackgroudHue);
+            },
+        });
+        /*
         this.backgroundfx2 = this.scene.background.preFX.addColorMatrix();
         this.backgroundfx2.brightness(0.9);
+        */
     }
     getReadyForNextStage() {return this.readyForNextStage;}
     stageAction() {
@@ -1471,7 +1485,7 @@ class StageManager {
         const sum = this.currentStageCopy.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
         if (sum < 1) {
             if (!this.checkActiveEnemies()) {
-                //this.scene.displayTooltip("stage win!", true);
+                this.scene.setInShop(true);
                 this.readyForNextStage = false;
                 this.scene.onTimerComplete();
                 this.currentStage += 1;
@@ -1634,6 +1648,7 @@ export class PlayScene extends Phaser.Scene{
     }
 
     create() {
+        this.inShop = false;
         this.backgroundSpeed = 3;
         this.mouseX = 0;
         this.mouseY = 0;
@@ -1670,6 +1685,7 @@ export class PlayScene extends Phaser.Scene{
         this.shopIntro = this.sound.add("shop_intro", {volume: 1})
         this.shopLoop = this.sound.add("shop_loop", {volume: 1, loop: true})
         this.shopPurchase = this.sound.add("shop_purchase", {volume: 1})
+        this.insufficientFunds = this.sound.add("insufficient_funds", {volume: 0.9})
 
         this.laserGroupBlue = new WeaponGroup(this, 'laser', Laser);
         this.laserGroupRed = new WeaponGroup(this, 'laserRed', Laser);
@@ -1767,7 +1783,7 @@ export class PlayScene extends Phaser.Scene{
 
     update() {
         if (!this.checkPlayerAlive()) {return;}
-        if (this.mouse1down && this.laserReady) {
+        if (this.mouse1down && this.laserReady && !this.inShop) {
             this.laserReady = false;
             this.time.addEvent({
                 delay: this.shipFireRateDelay,
@@ -1827,6 +1843,8 @@ export class PlayScene extends Phaser.Scene{
         }
     }
 
+    setInShop(active) {this.inShop = active;}
+    
     changeSecondary(secondary) {
         this.ship.setSecondary(secondary);
         let icon = '';
@@ -1857,8 +1875,8 @@ export class PlayScene extends Phaser.Scene{
         if (this.keyW.isDown || this.keyS.isDown || this.keyA.isDown || this.keyD.isDown) {
             if (!this.thruster.isPlaying) {
                 this.thruster.play();
-                this.ship.play('thrustersOn');
             } 
+            this.ship.anims.play('thrustersOn', true);
             if (!this.ship.immobilised) {
                 if (this.keyW.isDown) {
                     this.ship.setVelocityY(-this.ship.flySpeed)
@@ -1876,9 +1894,8 @@ export class PlayScene extends Phaser.Scene{
         } else {
             if (this.thruster.isPlaying) {
                 this.thruster.stop();
-            } else {
-                this.ship.play('still');
             }
+            this.ship.anims.play('still');
         }
     }
 
@@ -1919,7 +1936,6 @@ export class PlayScene extends Phaser.Scene{
         this.healthPercent.setText(`HP: ${Math.round(health)}%`);
         if (health <= 0) {
             if (!this.playerDeathHasPlayed) {
-
                 this.playerDeath();
                 this.playerDeathHasPlayed = true;
             }
@@ -1988,7 +2004,7 @@ export class PlayScene extends Phaser.Scene{
     addShip() {
         const centerX = this.game.renderer.width / 2;
         const centerY = this.game.renderer.height / 2;
-        this.ship = new Player(this, centerX, centerY);
+        this.ship = new Ship(this, centerX, centerY);
         this.ship.setCollideWorldBounds(true);
         this.shipFireRateDelay = 1000/(this.ship.getFireRate()/60);
     }
@@ -2170,39 +2186,46 @@ export class PlayScene extends Phaser.Scene{
     }
 
     shopBuyItem(purchase){
+        const scrap = this.ship.getScrap();
         if(purchase == "EngineUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setFlySpeedDelta(15);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "HealthUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setMaxHealthDelta(100);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "FireRateUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setFireRateDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "DamageUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setBulletDamageDelta(10);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         }  else if(purchase == "HullCollisionUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setHullCollisionDamageDelta(15);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "BulletSpeedUpgrade"){
-            if (this.ship.getScrap() < 150) {return;}
+            if (scrap < 150) {this.insufficientFunds.play()
+                return;}
             this.ship.setBulletSpeedDelta(50);
             this.subtractPlayerScrap(150);
             this.shopUpgradeMeaty.play();
         } else if(purchase == "Repair") {
-            const scrap = this.ship.getScrap();
             const healthDelta = this.ship.getMaxHealth() - this.ship.getHealth();
+            if (healthDelta <= 0 || scrap <= 0) {return;}
             if (scrap < healthDelta * 0.2) { // if less scrap than required for full repair
                 this.ship.setMaxHealthDelta(Math.round(scrap/0.2));
                 this.subtractPlayerScrap(scrap);
@@ -2226,15 +2249,18 @@ export class PlayScene extends Phaser.Scene{
             this.slideOutTweenButtons(this.buttons);
             this.stageManager.setReadyForNextStage(true);
         } else if (purchase == "rocketIcon" && this.ship.secondary !="rocket") {
-            if (this.ship.getScrap() < 1000) {return;}
+            if (scrap < 1000) {this.insufficientFunds.play()
+                return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("rocket");
         } else if (purchase == "blackHoleIcon" && this.ship.secondary !="bomb") {
-            if (this.ship.getScrap() < 1000) {return;}
+            if (scrap < 1000) {this.insufficientFunds.play()
+                return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("bomb");
         } else if (purchase == "laserBeamIcon" && this.ship.secondary !="laserBeam") {
-            if (this.ship.getScrap() < 1000) {return;}
+            if (scrap < 1000) {this.insufficientFunds.play()
+                return;}
             this.subtractPlayerScrap(1000);
             this.changeSecondary("laserBeam");
         } 
@@ -2396,7 +2422,7 @@ export class PlayScene extends Phaser.Scene{
         button.on("pointerover", () => {
             this.displayTooltip(this.shopItemDescription(item), true);
             this.displayUpgradeStatTooltip(item, true);
-            button.postFX.addBloom(0xffffff, 0.1, 0.1, 1.6, 1.6);
+            button.postFX.addBloom(0xffffff, 0.1, 0.1, 1.3, 1.6);
         });
         button.on('pointerup', function () {
             this.shopBuyItem(item);
@@ -2404,8 +2430,7 @@ export class PlayScene extends Phaser.Scene{
         button.on("pointerout", () => {
             this.displayTooltip("", false);
             this.displayUpgradeStatTooltip("", false);
-            button.clearFX();
-            button.preFX.addShadow(-0.05, 0.1, 0.2, 1.2, 0x000000, 9);
+            button.postFX.clear();
         });
     }
 

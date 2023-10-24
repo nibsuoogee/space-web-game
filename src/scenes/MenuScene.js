@@ -60,7 +60,7 @@ export class MenuScene extends Phaser.Scene{
         this.playButton.on("pointerup", () => {
             this.data.set({"dropLoop": this.dropLoop, "buildupBar": this.buildupBar, "menuLoop":this.menuLoop});
             this.scene.start(CST.SCENES.LORE, "Hello to Play scene from Menu!");
-
+            //this.scene.start(CST.SCENES.GAME, "Hello to Play scene from Menu!");
         });
     }
 }

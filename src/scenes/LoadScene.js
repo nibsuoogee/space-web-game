@@ -131,6 +131,7 @@ export class LoadScene extends Phaser.Scene{
         this.load.audio("shop_intro", "../../assets/music/shop-theme-fratellis-cover-intro.mp3");
         this.load.audio("shop_loop", "../../assets/music/shop-theme-fratellis-cover-loop.mp3");
         this.load.audio("shop_purchase", "../../assets/sfx/scrap-pick-up-03.mp3");
+        this.load.audio("insufficient_funds", "../../assets/sfx/insufficient-funds.mp3");
 
     }
     create() {
