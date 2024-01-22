@@ -1,4 +1,4 @@
-# space-web-game
+# Star Fighter
 Defend the Galactic Federation from waves of enemy ships in a fast paced space arcade arena!
 
 - Face multiple enemy types
